@@ -51,8 +51,7 @@
     "vitest": "^0.29.8"
   },
   "peerDependencies": {
-    "react": "^18",
-    "@arcgis/core": "^4.26.5"
+    "react": "^18"
   },
   "author": "Sam Matenaer",
   "license": "Apache-2.0",
@@ -60,7 +59,10 @@
     "singleQuote": true
   },
   "dependencies": {
-    "react-fast-compare": "^3.2.1",
-    "@arcgis/core": "^4.26.5"
+    "@arcgis/core": "^4.26.5",
+    "@esri/calcite-components-react": "^1.4.0",
+    "@tanstack/react-query": "^4.29.7",
+    "arcgis-react": "^1.0.3",
+    "react-fast-compare": "^3.2.1"
   }
 }
