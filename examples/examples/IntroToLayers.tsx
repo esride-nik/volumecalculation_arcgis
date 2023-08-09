@@ -23,10 +23,10 @@ const config = {
   streetsUrl:
     'https://server.arcgisonline.com/arcgis/rest/services/Reference/World_Transportation/MapServer',
   imgUrl:
-    // 'https://tiledimageservices.arcgis.com/OLiydejKCZTGhvWg/arcgis/rest/services/VarzeaMin_DOMs/ImageServer',    // ImageryTileLayer
+    // 'https://tiledimageservices.arcgis.com/OLiydejKCZTGhvWg/arcgis/rest/services/VarzeaMin_DOMs/ImageServer', // ImageryTileLayer
     // 'https://tiledimageservices.arcgis.com/OLiydejKCZTGhvWg/arcgis/rest/services/VarzeaMine_DOMs_noData/ImageServer',    // ImageryTileLayer
+    // 'https://tiles.arcgis.com/tiles/nGt4QxSblgDfeJn9/arcgis/rest/services/New_York_Housing_Density/MapServer',
     'https://iservices.arcgis.com/OLiydejKCZTGhvWg/arcgis/rest/services/VarzeadoLopesMineDemo_CVL_DRMINA_20180626_DSMDynamicImagery/ImageServer', // ImageryLayer
-  // 'https://tiles.arcgis.com/tiles/nGt4QxSblgDfeJn9/arcgis/rest/services/New_York_Housing_Density/MapServer',
 };
 
 export default function Simple() {
@@ -115,7 +115,7 @@ function Layers() {
         10,
         10
       );
-      // const fetchedPixels = await (layer as ImageryTileLayer).fetchPixels(
+      // const fetchedPixels = await (layer as unknown as ImageryTileLayer).fetchPixels(
       //   new Extent({
       //     xmin: point.x,
       //     ymin: point.y,
@@ -125,7 +125,7 @@ function Layers() {
       //   10,
       //   10
       // );
-      console.log('fetchedPixels', fetchedPixels);
+      console.log('fetchedPixels', fetchedPixels, fetchedPixels.pixelData.pixelBlock.pixels);
 
       // get pixel values from the pointer location as user moves the
       // pointer over the image. Use pixel values from each band to
@@ -182,18 +182,16 @@ function Layers() {
       </ArcUI>
 
       {/* Streets Layer */}
-      <ArcTileLayer
+      {/* <ArcTileLayer
         layerProps={{ url: config.streetsUrl, visible: streetsVisible }}
         eventHandlers={{ 'layerview-create': onStreetsViewCreated }}
-      />
+      /> */}
 
-      {/* Image Layer */}
       <ArcImageryLayer
         layerProps={{ url: config.imgUrl, opacity: 0.9 }}
         eventHandlers={{ 'layerview-create': onImgViewCreated }}
       />
 
-      {/* Image Layer */}
       {/* <ArcImageryTileLayer
         layerProps={{ url: config.imgUrl, opacity: 0.9 }}
         eventHandlers={{ 'layerview-create': onImgViewCreated }}

@@ -1,91 +1,37 @@
+import * as promiseUtils from '@arcgis/core/core/promiseUtils';
+import Extent from '@arcgis/core/geometry/Extent';
+import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
 import MapView from '@arcgis/core/views/MapView';
 import Expand from '@arcgis/core/widgets/Expand';
 import LayerList from '@arcgis/core/widgets/LayerList';
 import Legend from '@arcgis/core/widgets/Legend';
-import {
-  CalciteBlock,
-  CalciteLabel,
-  CalcitePanel,
-  CalciteShellPanel,
-} from '@esri/calcite-components-react';
 import { useMemo, useState } from 'react';
 
-import {
-  ArcMapView,
-  ArcUI,
-  ArcWidget,
-  useWatchEffect,
-  useWatchState,
-} from '../../src';
-
-const Coord = ({ num = 0, label = '' }) => (
-  <div>
-    {label}: {(Math.round(num * 100) / 100).toFixed(4)}
-  </div>
-);
-
-const Extent = ({
-  isNew = false,
-  extent,
-}: {
-  isNew?: boolean;
-  extent?: __esri.Extent;
-}) =>
-  extent ? (
-    <CalciteLabel id="current-extent-label">
-      <span style={titleStyle}>
-        {isNew ? 'Current Extent' : 'Previous Extent'}
-      </span>
-      <Coord label="xmax" num={extent.xmax} />
-      <Coord label="xmin" num={extent.xmin} />
-      <Coord label="ymax" num={extent.ymax} />
-      <Coord label="ymin" num={extent.ymin} />
-    </CalciteLabel>
-  ) : null;
-
-const titleStyle = { color: '#e6772e' };
+import { ArcMapView, ArcUI, ArcWidget, useMapView } from '../../src';
+import { ArcImageryLayer } from '../../src/components/ArcLayer/generated/ArcImageryLayer';
 
 export default function VolumeCalc() {
-  const [mapView, setMapView] = useState<MapView>();
-
-  const [scale, setScale] = useState<string>();
-
-  const [previousExtent, setPreviousExtent] = useState<__esri.Extent>();
-  const [currentExtent, setCurrentExtent] = useState<__esri.Extent>();
-
-  // Match the state of Popup visbility
-  const popupVisible = useWatchState(() => mapView?.popup.visible, [mapView]);
-
-  // Check if all layers are visible
-  const allLayersVisible = useWatchState(
-    () => mapView?.layerViews.every((layer) => layer.visible) ?? false,
-    [mapView?.layerViews]
+  return (
+    <ArcMapView
+      map={{ basemap: 'oceans' }}
+      center={[-118.805, 34.027]}
+      zoom={7}
+      style={{ height: '100vh' }}
+      eventHandlers={{
+        click: (e) => {
+          console.log(e.mapPoint);
+        },
+      }}
+    >
+      <Layers />
+    </ArcMapView>
   );
+}
 
-  // Get the titles of all visible layers
-  const visibleLayers = useWatchState(
-    () =>
-      mapView?.allLayerViews
-        .filter((layer) => layer.visible)
-        .map(({ layer }) => layer.title),
-    [mapView?.allLayerViews]
-  );
-
-  // When the map is stationary, update the scale and extent
-  useWatchEffect(
-    () => [mapView?.stationary, mapView?.extent, mapView?.scale] as const,
-    ([stationary, extent, scale], [prevStationary]) => {
-      if (stationary) {
-        if (scale) setScale((Math.round(scale * 100) / 100).toFixed(4));
-        if (extent !== currentExtent) {
-          setCurrentExtent(extent);
-          setPreviousExtent(currentExtent);
-        }
-      } else if (prevStationary) {
-        setCurrentExtent(extent);
-      }
-    }
-  );
+function Layers() {
+  const mapView = useMapView();
+  // const [mapView, setMapView] = useState<MapView>();
+  let layer: ImageryLayer;
 
   const layerList = useMemo(
     () =>
@@ -94,6 +40,120 @@ export default function VolumeCalc() {
       }),
     [mapView]
   );
+
+  const onImgViewCreated = (e: __esri.ImageryLayerLayerviewCreateEvent) => {
+    layer = e.layerView.layer as ImageryLayer;
+    mapView.goTo(layer.fullExtent);
+    console.log('LayerView for imagery created!', layer.title);
+
+    layer.renderer = {
+      computeGamma: false,
+      dra: false,
+      gamma: [1],
+      maxPercent: 0.25,
+      minPercent: 0.25,
+      max: 255,
+      min: 0,
+      statistics: [
+        [
+          1197.588_378_906_25, 1481.507_324_218_75, 1315.215_321_200_338_6,
+          58.967_350_047_369_77,
+        ],
+      ],
+      useGamma: false,
+      stretchType: 'min-max',
+      type: 'raster-stretch',
+    };
+
+    // // https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#rasterFunction
+    // const extractBand = new RasterFunction({
+    //   functionName: 'ExtractBand',
+    //   functionArguments: {
+    //     bandIDs: [0],
+    //   },
+    // });
+    // (layer as ImageryTileLayer).rasterFunction = extractBand;
+
+    mapView.on(['click'], (event: any) => {
+      // update mouse location graphic
+      // graphic.geometry = view.toMap({ x: event.x, y: event.y });
+      // debounce the imagerytilelayer.identify method from
+      // pointer-move event to improve performance
+      debouncedUpdate(event).catch((error: any) => {
+        console.error(error);
+        // if (!promiseUtils.isAbortError(error)) {
+        //   throw error;
+        // }
+      });
+    });
+
+    const debouncedUpdate = promiseUtils.debounce(async (event: any) => {
+      const point = mapView.toMap({ x: event.x, y: event.y });
+
+      const requestExtent = new Extent({
+        xmin: point.x,
+        ymin: point.y,
+        xmax: point.x + 1,
+        ymax: point.y + 1,
+        spatialReference: { wkid: 102_100 },
+      });
+      console.log('requestExtent', requestExtent);
+      const fetchedPixels = await (layer as ImageryLayer).fetchImage(
+        requestExtent,
+        10,
+        10
+      );
+      // const fetchedPixels = await (layer as unknown as ImageryTileLayer).fetchPixels(
+      //   new Extent({
+      //     xmin: point.x,
+      //     ymin: point.y,
+      //     xmax: point.x + 10,
+      //     ymax: point.y + 10,
+      //   }),
+      //   10,
+      //   10
+      // );
+      console.log(
+        'fetchedPixels',
+        fetchedPixels,
+        fetchedPixels.pixelData.pixelBlock.pixels
+      );
+
+      // get pixel values from the pointer location as user moves the
+      // pointer over the image. Use pixel values from each band to
+      // create a spectral chart. Also calculate the NDVI value for the location.
+      return (layer as ImageryLayer)
+        .identify({ geometry: point })
+        .then((results: any) => {
+          console.log('identify results', results);
+
+          // if (results.value) {
+          //   document.querySelector('#instruction').style.display = 'none';
+          //   // Update the spectral chart for the clicked location on the image
+          //   spectralChart.data.datasets[0].data = [];
+          //   spectralChart.data.datasets[0].data = results.value;
+          //   spectralChart.update(0);
+          //   if (chartDiv.style.display === 'none') {
+          //     chartDiv.style.display = 'block';
+          //   }
+          //   document.querySelector(
+          //     '#ndviValueDiv'
+          //   ).innerHTML = `Processed NDVI value:  ${
+          //     (results.processedValue - 100) / 100
+          //   }`;
+          // } else {
+          //   document.querySelector('#instruction').style.display = 'block';
+          //   chartDiv.style.display = 'none';
+          //   document.querySelector('#ndviValueDiv').innerHTML = '';
+          // }
+        })
+        .catch((error) => {
+          if (!promiseUtils.isAbortError(error)) {
+            throw error;
+          }
+        });
+    });
+  };
 
   const legend = useMemo(
     () =>
@@ -110,82 +170,28 @@ export default function VolumeCalc() {
 
   return (
     <>
-      {/* Map View Container */}
-      <ArcMapView
+      {/* <ArcMapView
         map={{ portalItem: { id: 'def32d44bec8442ba2ef612bb35ad7bb' } }}
         zoom={15}
         onViewCreated={setMapView}
         style={{ height: '100vh' }}
       >
-        {/* Render the LayerList widget */}
         <ArcUI position="top-right">
           <ArcWidget widget={layerList} />
         </ArcUI>
 
-        {/* Render the Legend Widget */}
         <ArcUI position="bottom-right">
           <ArcWidget widget={legend} />
         </ArcUI>
-      </ArcMapView>
+      </ArcMapView> */}
 
-      {/* Side Panel UI */}
-      <CalciteShellPanel slot="panel-end" position="end" style={titleStyle}>
-        <CalcitePanel heading="VolumeCalc Watch Events">
-          <CalciteBlock
-            heading="Extent Property"
-            description="Displays the current and previous extent value when the extent has changed."
-            collapsible
-            open
-            id="CalciteBlock"
-          >
-            <Extent isNew extent={currentExtent} />
-            <Extent extent={previousExtent} />
-          </CalciteBlock>
-          <CalciteBlock
-            heading="Scale Property"
-            description="Displays the current scale value when the scale has changed."
-            collapsible
-            open
-            id="CalciteBlock"
-          >
-            <CalciteLabel
-              id="current-scale-label"
-              layout="inline-space-between"
-            >
-              <span style={titleStyle}>current extent: </span>
-              {scale}
-            </CalciteLabel>
-          </CalciteBlock>
-          <CalciteBlock
-            heading="Popup Visible Property"
-            description="Displays the value of the popup's visible property on the view."
-            collapsible
-            open
-            id="CalciteBlock"
-          >
-            <CalciteLabel id="popup-label" layout="inline-space-between">
-              <span style={titleStyle}>Popup visible: </span>
-              <b>{popupVisible ? 'true' : 'false'}</b>
-            </CalciteLabel>
-          </CalciteBlock>
-          <CalciteBlock
-            heading="Visible Layers Properties"
-            description="Checks if all the layers are visible or not and shows the current visible layers in the map."
-            collapsible
-            open
-            id="CalciteBlock"
-          >
-            <CalciteLabel id="layers-label">
-              <span style={titleStyle}>
-                {allLayersVisible ? 'All' : 'Not all'} layers are visible
-              </span>
-              {visibleLayers?.map((layer) => (
-                <div key={layer}>- {layer}</div>
-              ))}
-            </CalciteLabel>
-          </CalciteBlock>
-        </CalcitePanel>
-      </CalciteShellPanel>
+      <ArcImageryLayer
+        layerProps={{
+          url: 'https://iservices.arcgis.com/OLiydejKCZTGhvWg/arcgis/rest/services/VarzeadoLopesMineDemo_CVL_DRMINA_20180626_DSMDynamicImagery/ImageServer', // ImageryLayer
+          opacity: 0.9,
+        }}
+        eventHandlers={{ 'layerview-create': onImgViewCreated }}
+      />
     </>
   );
 }
