@@ -2,6 +2,9 @@ import * as promiseUtils from '@arcgis/core/core/promiseUtils';
 import Extent from '@arcgis/core/geometry/Extent';
 import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
 import ImageryTileLayer from '@arcgis/core/layers/ImageryTileLayer';
+import RasterColormapRenderer from '@arcgis/core/renderers/RasterColormapRenderer';
+import RasterStretchRenderer from '@arcgis/core/renderers/RasterStretchRenderer';
+import ColormapInfo from '@arcgis/core/renderers/support/ColormapInfo';
 import MapView from '@arcgis/core/views/MapView';
 import Expand from '@arcgis/core/widgets/Expand';
 import LayerList from '@arcgis/core/widgets/LayerList';
@@ -88,65 +91,58 @@ function Layers() {
     const debouncedUpdate = promiseUtils.debounce(async (event: any) => {
       const point = mapView.toMap({ x: event.x, y: event.y });
 
+      // const requestExtent = layer.fullExtent;
       const requestExtent = new Extent({
         xmin: point.x,
         ymin: point.y,
-        xmax: point.x + 1,
-        ymax: point.y + 1,
+        xmax: point.x + 100,
+        ymax: point.y + 100,
         spatialReference: { wkid: 102_100 },
       });
       console.log('requestExtent', requestExtent);
 
-      // const fetchedPixels = await (layer as ImageryLayer).fetchImage(
+      // const pixelData = await (layer as ImageryLayer).fetchImage(
       //   requestExtent,
       //   10,
       //   10
-      // );
-      const fetchedPixels = {
-        pixelData: await (layer as unknown as ImageryTileLayer).fetchPixels(
-          requestExtent,
-          10,
-          10
-        ),
-      };
-      console.log('fetchedPixels', fetchedPixels);
+      // ).pixelData;
+      const pixelData = (await (
+        layer as unknown as ImageryTileLayer
+      ).fetchPixels(requestExtent, 10, 10)) as __esri.PixelData;
+      console.log('pixelData', pixelData);
 
-      const compare01 = fetchedPixels.pixelData.pixelBlock.pixels[0].every(
+      const compare01 = pixelData.pixelBlock.pixels[0].every(
         (val: any, index: number) =>
-          val === fetchedPixels.pixelData.pixelBlock.pixels[1][index]
+          val === pixelData.pixelBlock.pixels[1][index]
       );
       console.log('compare', compare01);
 
-      // return (layer as ImageryLayer)
-      //   .identify({ geometry: point })
-      //   .then((results: any) => {
-      //     console.log('identify results', results);
-
-      // if (results.value) {
-      //   document.querySelector('#instruction').style.display = 'none';
-      //   // Update the spectral chart for the clicked location on the image
-      //   spectralChart.data.datasets[0].data = [];
-      //   spectralChart.data.datasets[0].data = results.value;
-      //   spectralChart.update(0);
-      //   if (chartDiv.style.display === 'none') {
-      //     chartDiv.style.display = 'block';
-      //   }
-      //   document.querySelector(
-      //     '#ndviValueDiv'
-      //   ).innerHTML = `Processed NDVI value:  ${
-      //     (results.processedValue - 100) / 100
-      //   }`;
-      // } else {
-      //   document.querySelector('#instruction').style.display = 'block';
-      //   chartDiv.style.display = 'none';
-      //   document.querySelector('#ndviValueDiv').innerHTML = '';
-      // }
-      //   })
-      //   .catch((error) => {
-      //     if (!promiseUtils.isAbortError(error)) {
-      //       throw error;
-      //     }
-      //   });
+      // const colormapInfo = [
+      //   {
+      //     color: [0, 150, 0],
+      //     value: (pixelData.pixelBlock.statistics[0].minValue as number) - 500,
+      //     label: (pixelData.pixelBlock.statistics[0].minValue as number) - 500,
+      //   },
+      //   {
+      //     color: [150, 0, 0],
+      //     value: (pixelData.pixelBlock.statistics[0].maxValue as number) + 500,
+      //     label: (pixelData.pixelBlock.statistics[0].maxValue as number) + 500,
+      //   },
+      // ] as unknown as __esri.ColormapInfoProperties[];
+      // const renderer = new RasterColormapRenderer({
+      //   colormapInfos: colormapInfo,
+      // });
+      const renderer = new RasterStretchRenderer({
+        statistics: [
+          [
+            (pixelData.pixelBlock.statistics[0].minValue as number) - 500,
+            (pixelData.pixelBlock.statistics[0].maxValue as number) + 500,
+          ],
+        ],
+        stretchType: 'min-max',
+      });
+      console.log('renderer', renderer);
+      layer.renderer = renderer;
     });
   };
 
