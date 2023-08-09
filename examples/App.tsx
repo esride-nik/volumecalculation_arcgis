@@ -9,6 +9,11 @@ import { useCalciteActionBar } from './hooks/calciteHooks';
 
 const Examples = [
   {
+    name: 'VolumeCalc',
+    component: lazy(() => import('./examples/VolumeCalc')),
+    icon: 'layer-graphics',
+  },
+  {
     name: 'ReactiveUtils',
     component: lazy(() => import('./examples/ReactiveUtils')),
     icon: 'refresh',
