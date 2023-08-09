@@ -75,15 +75,11 @@ function Layers() {
     // (layer as ImageryTileLayer).rasterFunction = extractBand;
 
     mapView.on(['click'], (event: any) => {
-      // update mouse location graphic
-      // graphic.geometry = view.toMap({ x: event.x, y: event.y });
-      // debounce the imagerytilelayer.identify method from
-      // pointer-move event to improve performance
       debouncedUpdate(event).catch((error: any) => {
         console.error(error);
-        // if (!promiseUtils.isAbortError(error)) {
-        //   throw error;
-        // }
+        if (!promiseUtils.isAbortError(error)) {
+          throw error;
+        }
       });
     });
 
@@ -103,70 +99,124 @@ function Layers() {
         10,
         10
       );
-      // const fetchedPixels = await (layer as unknown as ImageryTileLayer).fetchPixels(
-      //   new Extent({
-      //     xmin: point.x,
-      //     ymin: point.y,
-      //     xmax: point.x + 10,
-      //     ymax: point.y + 10,
-      //   }),
-      //   10,
-      //   10
-      // );
       console.log(
         'fetchedPixels',
         fetchedPixels,
         fetchedPixels.pixelData.pixelBlock.pixels
       );
 
-      // get pixel values from the pointer location as user moves the
-      // pointer over the image. Use pixel values from each band to
-      // create a spectral chart. Also calculate the NDVI value for the location.
-      return (layer as ImageryLayer)
-        .identify({ geometry: point })
-        .then((results: any) => {
-          console.log('identify results', results);
+      const compare01 = fetchedPixels.pixelData.pixelBlock.pixels[0].every((val: any, index: number) => val === fetchedPixels.pixelData.pixelBlock.pixels[1][index]);
+      const compare12 = fetchedPixels.pixelData.pixelBlock.pixels[1].every((val: any, index: number) => val === fetchedPixels.pixelData.pixelBlock.pixels[2][index]);
+      console.log('compare', compare01, compare12);
 
-          // if (results.value) {
-          //   document.querySelector('#instruction').style.display = 'none';
-          //   // Update the spectral chart for the clicked location on the image
-          //   spectralChart.data.datasets[0].data = [];
-          //   spectralChart.data.datasets[0].data = results.value;
-          //   spectralChart.update(0);
-          //   if (chartDiv.style.display === 'none') {
-          //     chartDiv.style.display = 'block';
-          //   }
-          //   document.querySelector(
-          //     '#ndviValueDiv'
-          //   ).innerHTML = `Processed NDVI value:  ${
-          //     (results.processedValue - 100) / 100
-          //   }`;
-          // } else {
-          //   document.querySelector('#instruction').style.display = 'block';
-          //   chartDiv.style.display = 'none';
-          //   document.querySelector('#ndviValueDiv').innerHTML = '';
-          // }
-        })
-        .catch((error) => {
-          if (!promiseUtils.isAbortError(error)) {
-            throw error;
-          }
-        });
+      // return (layer as ImageryLayer)
+      //   .identify({ geometry: point })
+      //   .then((results: any) => {
+      //     console.log('identify results', results);
+
+      //     // if (results.value) {
+      //     //   document.querySelector('#instruction').style.display = 'none';
+      //     //   // Update the spectral chart for the clicked location on the image
+      //     //   spectralChart.data.datasets[0].data = [];
+      //     //   spectralChart.data.datasets[0].data = results.value;
+      //     //   spectralChart.update(0);
+      //     //   if (chartDiv.style.display === 'none') {
+      //     //     chartDiv.style.display = 'block';
+      //     //   }
+      //     //   document.querySelector(
+      //     //     '#ndviValueDiv'
+      //     //   ).innerHTML = `Processed NDVI value:  ${
+      //     //     (results.processedValue - 100) / 100
+      //     //   }`;
+      //     // } else {
+      //     //   document.querySelector('#instruction').style.display = 'block';
+      //     //   chartDiv.style.display = 'none';
+      //     //   document.querySelector('#ndviValueDiv').innerHTML = '';
+      //     // }
+      //   })
+      //   .catch((error) => {
+      //     if (!promiseUtils.isAbortError(error)) {
+      //       throw error;
+      //     }
+      //   });
     });
   };
 
-  const legend = useMemo(
-    () =>
-      new Expand({
-        view: mapView,
-        content: new Legend({
-          view: mapView,
-        }),
-        expandTooltip: 'Legend',
-        expanded: true,
-      }),
-    [mapView]
-  );
+  const pixelFilterFunction = (pixelData: __esri.PixelData) => {
+    if (pixelData == null || pixelData.pixelBlock == null) {
+      return;
+    }
+
+    const currentMin = 0;
+    const currentMax = 255;
+
+    // The pixelBlock stores the values of all pixels visible in the view
+    const pixelBlock = pixelData.pixelBlock;
+    console.log(pixelData);
+    // The pixels visible in the view
+    const pixels = pixelBlock.pixels;
+    let mask = pixelBlock.mask;
+
+    console.log('pixelData', pixelBlock, pixels);
+
+    // The number of pixels in the pixelBlock
+    const numPixels = pixelBlock.width * pixelBlock.height;
+
+    // Get the min and max values of the data in the current view
+    const minVal = pixelData.pixelBlock.statistics[0].minValue ?? 0;
+    const maxVal = pixelData.pixelBlock.statistics[0].maxValue;
+
+    // Calculate the factor by which to determine the red and blue
+    // values in the colorized version of the layer
+    const factor = 255; //.0 / (maxVal - minVal);
+    if (pixels == null) {
+      return;
+    }
+
+    // Get the pixels containing temperature values in the only band of the data
+    const tempBand = pixels[0];
+    const p1 = pixels[0];
+    // Create empty arrays for each of the RGB bands to set on the pixelBlock
+    const rBand = new Uint8Array(p1.length);
+    const gBand = new Uint8Array(p1.length);
+    const bBand = new Uint8Array(p1.length);
+
+    if (mask == null) {
+      mask = new Uint8Array(p1.length); //mask = new Uint8Array(p1.length);
+      mask.fill(1);
+      pixelBlock.mask = mask;
+    }
+
+    // Loop through all the pixels in the view
+    for (let i = 0; i < numPixels; i++) {
+      // skip noData pixels
+      if (mask[i] === 0) {
+        continue;
+      }
+      const tempValue = tempBand[i];
+      const red = (tempValue - minVal) * factor;
+      mask[i] =
+        p1[i] >= Math.floor(currentMin) && p1[i] <= Math.floor(currentMax)
+          ? 1
+          : 0;
+
+      //apply color based on temperature value of each pixel
+      if (mask[i]) {
+        // p[i] = Math.floor((p1[i] - minVal) * factor);
+        rBand[i] = red;
+        gBand[i] = 0;
+        bBand[i] = 255 - red;
+      }
+    }
+
+    // Set the new pixel values on the pixelBlock
+    // pixelData.pixelBlock.pixels = [rBand, gBand, bBand]; //assign rgb values to each pixel
+    // pixelData.pixelBlock.statistics = [];
+    // pixelData.pixelBlock.pixelType = "u8";
+    pixelData.pixelBlock.pixels = pixelData.pixelBlock.pixels;
+    pixelData.pixelBlock.statistics = pixelData.pixelBlock.statistics;
+    pixelData.pixelBlock.pixelType = pixelData.pixelBlock.pixelType;
+  };
 
   return (
     <>
@@ -189,6 +239,8 @@ function Layers() {
         layerProps={{
           url: 'https://iservices.arcgis.com/OLiydejKCZTGhvWg/arcgis/rest/services/VarzeadoLopesMineDemo_CVL_DRMINA_20180626_DSMDynamicImagery/ImageServer', // ImageryLayer
           opacity: 0.9,
+          // TODO: pixelFilter only returns one band! why?
+          // pixelFilter: pixelFilterFunction,
         }}
         eventHandlers={{ 'layerview-create': onImgViewCreated }}
       />
