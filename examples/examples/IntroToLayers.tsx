@@ -1,5 +1,6 @@
 import * as promiseUtils from '@arcgis/core/core/promiseUtils';
 import Extent from '@arcgis/core/geometry/Extent';
+import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
 import ImageryTileLayer from '@arcgis/core/layers/ImageryTileLayer';
 import RasterFunction from '@arcgis/core/layers/support/RasterFunction';
 import Portal from '@arcgis/core/portal/Portal';
@@ -11,6 +12,7 @@ import {
 import React from 'react';
 
 import { ArcMapView, ArcUI, useMapView } from '../../src';
+import { ArcImageryLayer } from '../../src/components/ArcLayer/generated/ArcImageryLayer';
 import { ArcImageryTileLayer } from '../../src/components/ArcLayer/generated/ArcImageryTileLayer';
 import { ArcTileLayer } from '../../src/components/ArcLayer/generated/ArcTileLayer';
 
@@ -21,7 +23,9 @@ const config = {
   streetsUrl:
     'https://server.arcgisonline.com/arcgis/rest/services/Reference/World_Transportation/MapServer',
   imgUrl:
-    'https://tiledimageservices.arcgis.com/OLiydejKCZTGhvWg/arcgis/rest/services/VarzeaMine_DOMs_noData/ImageServer',
+    // 'https://tiledimageservices.arcgis.com/OLiydejKCZTGhvWg/arcgis/rest/services/VarzeaMin_DOMs/ImageServer',    // ImageryTileLayer
+    // 'https://tiledimageservices.arcgis.com/OLiydejKCZTGhvWg/arcgis/rest/services/VarzeaMine_DOMs_noData/ImageServer',    // ImageryTileLayer
+    'https://iservices.arcgis.com/OLiydejKCZTGhvWg/arcgis/rest/services/VarzeadoLopesMineDemo_CVL_DRMINA_20180626_DSMDynamicImagery/ImageServer', // ImageryLayer
   // 'https://tiles.arcgis.com/tiles/nGt4QxSblgDfeJn9/arcgis/rest/services/New_York_Housing_Density/MapServer',
 };
 
@@ -46,24 +50,43 @@ export default function Simple() {
 function Layers() {
   const mapView = useMapView();
   const [streetsVisible, setStreetsVisible] = React.useState(false);
-  let layer: __esri.Layer;
+  let layer: ImageryLayer;
   let layerView: __esri.LayerView;
 
-  const onImgViewCreated = (e: __esri.TileLayerLayerviewCreateEvent) => {
-    layer = e.layerView.layer;
+  const onImgViewCreated = (e: __esri.ImageryLayerLayerviewCreateEvent) => {
+    layer = e.layerView.layer as ImageryLayer;
     mapView.goTo(layer.fullExtent);
     console.log('LayerView for imagery created!', layer.title);
 
-    // https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#rasterFunction
-    const extractBand = new RasterFunction({
-      functionName: 'ExtractBand',
-      functionArguments: {
-        bandIDs: [3, 2, 1],
-      },
-    });
-    (layer as ImageryTileLayer).rasterFunction = extractBand;
+    layer.renderer = {
+      computeGamma: false,
+      dra: false,
+      gamma: [1],
+      maxPercent: 0.25,
+      minPercent: 0.25,
+      max: 255,
+      min: 0,
+      statistics: [
+        [
+          1197.588_378_906_25, 1481.507_324_218_75, 1315.215_321_200_338_6,
+          58.967_350_047_369_77,
+        ],
+      ],
+      useGamma: false,
+      stretchType: 'min-max',
+      type: 'raster-stretch',
+    };
 
-    mapView.on(['pointer-move'], (event: any) => {
+    // // https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#rasterFunction
+    // const extractBand = new RasterFunction({
+    //   functionName: 'ExtractBand',
+    //   functionArguments: {
+    //     bandIDs: [0],
+    //   },
+    // });
+    // (layer as ImageryTileLayer).rasterFunction = extractBand;
+
+    mapView.on(['click'], (event: any) => {
       // update mouse location graphic
       // graphic.geometry = view.toMap({ x: event.x, y: event.y });
       // debounce the imagerytilelayer.identify method from
@@ -79,25 +102,38 @@ function Layers() {
     const debouncedUpdate = promiseUtils.debounce(async (event: any) => {
       const point = mapView.toMap({ x: event.x, y: event.y });
 
-      const fetchedPixels = await (layer as ImageryTileLayer).fetchPixels(
-        new Extent({
-          xmin: point.x,
-          ymin: point.y,
-          xmax: point.x + 10,
-          ymax: point.y + 10,
-        }),
+      const requestExtent = new Extent({
+        xmin: point.x,
+        ymin: point.y,
+        xmax: point.x + 1,
+        ymax: point.y + 1,
+        spatialReference: { wkid: 102100 },
+      });
+      console.log('requestExtent', requestExtent);
+      const fetchedPixels = await (layer as ImageryLayer).fetchImage(
+        requestExtent,
         10,
         10
       );
+      // const fetchedPixels = await (layer as ImageryTileLayer).fetchPixels(
+      //   new Extent({
+      //     xmin: point.x,
+      //     ymin: point.y,
+      //     xmax: point.x + 10,
+      //     ymax: point.y + 10,
+      //   }),
+      //   10,
+      //   10
+      // );
       console.log('fetchedPixels', fetchedPixels);
 
       // get pixel values from the pointer location as user moves the
       // pointer over the image. Use pixel values from each band to
       // create a spectral chart. Also calculate the NDVI value for the location.
-      return (layer as ImageryTileLayer)
-        .identify(point)
+      return (layer as ImageryLayer)
+        .identify({ geometry: point })
         .then((results: any) => {
-          console.log('RESULTS', results);
+          console.log('identify results', results);
 
           // if (results.value) {
           //   document.querySelector('#instruction').style.display = 'none';
@@ -152,10 +188,16 @@ function Layers() {
       />
 
       {/* Image Layer */}
-      <ArcImageryTileLayer
+      <ArcImageryLayer
         layerProps={{ url: config.imgUrl, opacity: 0.9 }}
         eventHandlers={{ 'layerview-create': onImgViewCreated }}
       />
+
+      {/* Image Layer */}
+      {/* <ArcImageryTileLayer
+        layerProps={{ url: config.imgUrl, opacity: 0.9 }}
+        eventHandlers={{ 'layerview-create': onImgViewCreated }}
+      /> */}
     </>
   );
 }
