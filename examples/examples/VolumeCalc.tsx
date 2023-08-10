@@ -132,17 +132,20 @@ function Layers() {
       // const renderer = new RasterColormapRenderer({
       //   colormapInfos: colormapInfo,
       // });
-      const renderer = new RasterStretchRenderer({
-        statistics: [
-          [
-            (pixelData.pixelBlock.statistics[0].minValue as number) - 500,
-            (pixelData.pixelBlock.statistics[0].maxValue as number) + 500,
-          ],
-        ],
-        stretchType: 'min-max',
-      });
-      console.log('renderer', renderer);
-      layer.renderer = renderer;
+
+
+      // TODO: this renderer doesn't quite work yet
+      // const renderer = new RasterStretchRenderer({
+      //   statistics: [
+      //     [
+      //       (pixelData.pixelBlock.statistics[0].minValue as number) - 500,
+      //       (pixelData.pixelBlock.statistics[0].maxValue as number) + 500,
+      //     ],
+      //   ],
+      //   stretchType: 'min-max',
+      // });
+      // console.log('renderer', renderer);
+      // layer.renderer = renderer;
     });
   };
 
