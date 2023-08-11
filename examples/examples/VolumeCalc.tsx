@@ -1,5 +1,8 @@
 import * as promiseUtils from '@arcgis/core/core/promiseUtils';
 import Extent from '@arcgis/core/geometry/Extent';
+import Point from '@arcgis/core/geometry/Point';
+import Graphic from '@arcgis/core/Graphic';
+import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
 import ImageryTileLayer from '@arcgis/core/layers/ImageryTileLayer';
 import RasterColormapRenderer from '@arcgis/core/renderers/RasterColormapRenderer';
@@ -11,7 +14,15 @@ import LayerList from '@arcgis/core/widgets/LayerList';
 import Legend from '@arcgis/core/widgets/Legend';
 import { useMemo, useState } from 'react';
 
-import { ArcMapView, ArcSceneView, ArcUI, ArcWidget, useMapView, useSceneView } from '../../src';
+import {
+  ArcMapView,
+  ArcSceneView,
+  ArcUI,
+  ArcWidget,
+  useMapView,
+  useSceneView,
+} from '../../src';
+import { ArcGraphicsLayer } from '../../src/components/ArcLayer/generated/ArcGraphicsLayer';
 import { ArcImageryLayer } from '../../src/components/ArcLayer/generated/ArcImageryLayer';
 import { ArcImageryTileLayer } from '../../src/components/ArcLayer/generated/ArcImageryTileLayer';
 
@@ -27,6 +38,15 @@ export default function VolumeCalc() {
           console.log(e.mapPoint);
         },
       }}
+      viewingMode="local"
+      clippingArea={{
+        spatialReference: { wkid: 102_100 },
+        xmin: -4_891_786.441_670_591,
+        ymin: -2_307_257.926_811_594,
+        xmax: -4_891_427.934_010_591,
+        ymax: -2_306_963.309_761_594_5,
+      }}
+      popupEnabled={true}
     >
       <Layers />
     </ArcSceneView>
@@ -35,8 +55,8 @@ export default function VolumeCalc() {
 
 function Layers() {
   const mapView = useSceneView();
-  // const [mapView, setMapView] = useState<MapView>();
-  let layer: ImageryLayer;
+  let imgLayer: ImageryLayer;
+  let volGraphicsLayer: GraphicsLayer;
 
   const layerList = useMemo(
     () =>
@@ -46,12 +66,17 @@ function Layers() {
     [mapView]
   );
 
-  const onImgViewCreated = (e: __esri.ImageryLayerLayerviewCreateEvent) => {
-    layer = e.layerView.layer as ImageryLayer;
-    mapView.goTo(layer.fullExtent);
-    console.log('LayerView for imagery created!', layer.title);
+  const onVolGraphicsViewCreated = (e: any) => {
+    console.log('onVolGraphicsViewCreated', e);
+    volGraphicsLayer = e.layerView.layer as GraphicsLayer;
+  };
 
-    layer.renderer = {
+  const onImgViewCreated = (e: __esri.ImageryLayerLayerviewCreateEvent) => {
+    imgLayer = e.layerView.layer as ImageryLayer;
+    mapView.goTo(imgLayer.fullExtent);
+    console.log('LayerView for imagery created!', imgLayer.title);
+
+    imgLayer.renderer = {
       computeGamma: false,
       dra: false,
       gamma: [1],
@@ -107,7 +132,7 @@ function Layers() {
       //   10
       // ).pixelData;
       const pixelData = (await (
-        layer as unknown as ImageryTileLayer
+        imgLayer as unknown as ImageryTileLayer
       ).fetchPixels(requestExtent, 10, 10)) as __esri.PixelData;
       console.log('pixelData', pixelData);
 
@@ -116,6 +141,42 @@ function Layers() {
           val === pixelData.pixelBlock.pixels[1][index]
       );
       console.log('compare', compare01);
+
+      // const volGraphics = pixelData.pixelBlock.pixels[0].map(
+      //   (value0: number, index: number) => (value0 += index)
+      // );
+      const volGraphics: Graphic[] = [];
+      // eslint-disable-next-line unicorn/no-array-for-each
+      (pixelData.pixelBlock.pixels[0] as number[]).forEach(
+        (value0: number, index: number): void => {
+          const g = new Graphic({
+            geometry: new Point({
+              spatialReference: pixelData.extent.spatialReference,
+              x: pixelData.extent.xmin + index,
+              y: pixelData.extent.ymin + index,
+              z: value0 * 100,
+              m: value0 * 100
+            }),
+            symbol: {
+              type: 'point-3d', // autocasts as new PointSymbol3D()
+              symbolLayers: [
+                {
+                  type: 'object', // autocasts as new ObjectSymbol3DLayer()
+                  width: 5, // diameter of the object from east to west in meters
+                  height: 5, // height of object in meters
+                  depth: 5, // diameter of the object from north to south in meters
+                  resource: { primitive: 'cube' },
+                  material: { color: 'red' },
+                  verticalOffset: 100,
+                },
+              ],
+            } as unknown as __esri.PointSymbol3D
+          });
+          volGraphics.push(g);
+        }
+      );
+
+      volGraphicsLayer.addMany(volGraphics);
 
       // const colormapInfo = [
       //   {
@@ -132,7 +193,6 @@ function Layers() {
       // const renderer = new RasterColormapRenderer({
       //   colormapInfos: colormapInfo,
       // });
-
 
       // TODO: this renderer doesn't quite work yet
       // const renderer = new RasterStretchRenderer({
@@ -245,6 +305,13 @@ function Layers() {
           // pixelFilter: pixelFilterFunction,
         }}
         eventHandlers={{ 'layerview-create': onImgViewCreated }}
+      />
+
+      <ArcGraphicsLayer
+        layerProps={{
+          id: 'volumetricGraphics',
+        }}
+        eventHandlers={{ 'layerview-create': onVolGraphicsViewCreated }}
       />
     </>
   );
