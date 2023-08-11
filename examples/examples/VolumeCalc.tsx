@@ -11,13 +11,13 @@ import LayerList from '@arcgis/core/widgets/LayerList';
 import Legend from '@arcgis/core/widgets/Legend';
 import { useMemo, useState } from 'react';
 
-import { ArcMapView, ArcUI, ArcWidget, useMapView } from '../../src';
+import { ArcMapView, ArcSceneView, ArcUI, ArcWidget, useMapView, useSceneView } from '../../src';
 import { ArcImageryLayer } from '../../src/components/ArcLayer/generated/ArcImageryLayer';
 import { ArcImageryTileLayer } from '../../src/components/ArcLayer/generated/ArcImageryTileLayer';
 
 export default function VolumeCalc() {
   return (
-    <ArcMapView
+    <ArcSceneView
       map={{ basemap: 'oceans' }}
       center={[-118.805, 34.027]}
       zoom={7}
@@ -29,12 +29,12 @@ export default function VolumeCalc() {
       }}
     >
       <Layers />
-    </ArcMapView>
+    </ArcSceneView>
   );
 }
 
 function Layers() {
-  const mapView = useMapView();
+  const mapView = useSceneView();
   // const [mapView, setMapView] = useState<MapView>();
   let layer: ImageryLayer;
 
