@@ -69,10 +69,10 @@ function Layers() {
     // Define elevationInfo and set it on the layer
     const currentElevationInfo = {
       mode: 'relative-to-ground',
-      offset: 10,
-      featureExpressionInfo: {
-        expression: 'Geometry($feature).z * 1',
-      },
+      offset: -1200,
+      // featureExpressionInfo: {
+      //   expression: 'Geometry($feature).z - 1200',
+      // },
       unit: 'meters',
     } as unknown as __esri.GraphicsLayerElevationInfo;
 
@@ -121,6 +121,42 @@ function Layers() {
       });
     });
 
+    const create3dGraphic = (
+      pixelData: __esri.PixelData,
+      zValue: number,
+      index: number,
+      symbolColor: string | __esri.Color
+    ) => {
+      const g = new Graphic({
+        attributes: {
+          OBJECTID: index,
+        },
+        geometry: new Point({
+          spatialReference: pixelData.extent.spatialReference,
+          x: pixelData.extent.xmin + index,
+          y: pixelData.extent.ymin + index,
+          z: zValue,
+        }),
+        symbol: {
+          type: 'point-3d',
+          symbolLayers: [
+            {
+              type: 'object',
+              width: 1,
+              height: 1,
+              resource: {
+                primitive: 'cone',
+              },
+              material: {
+                color: symbolColor,
+              },
+            },
+          ],
+        } as unknown as __esri.PointSymbol3D,
+      });
+      return g;
+    };
+
     const debouncedUpdate = promiseUtils.debounce(async (event: any) => {
       const point = mapView.toMap({ x: event.x, y: event.y });
 
@@ -134,67 +170,23 @@ function Layers() {
       });
       console.log('requestExtent', requestExtent);
 
-      // const pixelData = await (layer as ImageryLayer).fetchImage(
-      //   requestExtent,
-      //   10,
-      //   10
-      // ).pixelData;
       const pixelData = (await (
         imgLayer as unknown as ImageryTileLayer
       ).fetchPixels(requestExtent, 10, 10)) as __esri.PixelData;
       console.log('pixelData', pixelData);
 
-      const compare01 = pixelData.pixelBlock.pixels[0].every(
-        (val: any, index: number) =>
-          val === pixelData.pixelBlock.pixels[1][index]
-      );
-      console.log('compare', compare01);
-
-      // const volGraphics = pixelData.pixelBlock.pixels[0].map(
-      //   (value0: number, index: number) => (value0 += index)
-      // );
       const volGraphics: Graphic[] = [];
       // eslint-disable-next-line unicorn/no-array-for-each
       (pixelData.pixelBlock.pixels[0] as number[]).forEach(
-        (value0: number, index: number): void => {
-          const g = new Graphic({
-            attributes: {
-              OBJECTID: index,
-            },
-            geometry: new Point({
-              spatialReference: pixelData.extent.spatialReference,
-              x: pixelData.extent.xmin + index,
-              y: pixelData.extent.ymin + index,
-              z: Math.round(value0 / 10),
-            }),
-            symbol: {
-              type: 'point-3d', // autocasts as new PointSymbol3D()
-              // symbolLayers: [
-              //   {
-              //     type: 'object', // autocasts as new ObjectSymbol3DLayer()
-              //     width: 5, // diameter of the object from east to west in meters
-              //     height: 5, // height of object in meters
-              //     depth: 5, // diameter of the object from north to south in meters
-              //     resource: { primitive: 'cube' },
-              //     material: { color: 'red' },
-              //     verticalOffset: 100,
-              //   },
-              // ],
-              symbolLayers: [
-                {
-                  type: 'object', // autocasts as new ObjectSymbol3DLayer()
-                  width: 1,
-                  height: 1,
-                  resource: {
-                    primitive: 'cone',
-                  },
-                  material: {
-                    color: '#FFD700',
-                  },
-                },
-              ],
-            } as unknown as __esri.PointSymbol3D,
-          });
+        (value: number, index: number): void => {
+          const g = create3dGraphic(pixelData, value, index, '#FFD700');
+          volGraphics.push(g);
+        }
+      );
+      // eslint-disable-next-line unicorn/no-array-for-each
+      (pixelData.pixelBlock.pixels[1] as number[]).forEach(
+        (value: number, index: number): void => {
+          const g = create3dGraphic(pixelData, value, index, '#D700FF');
           volGraphics.push(g);
         }
       );
@@ -203,11 +195,11 @@ function Layers() {
         (g: Graphic) => g.geometry.z !== 0
       );
 
-      console.log(
-        'adding graphic',
-        volGraphicsNoZeros.map((g: Graphic) => g.geometry.z),
-        volGraphicsLayer
-      );
+      // console.log(
+      //   'adding graphic',
+      //   volGraphicsNoZeros.map((g: Graphic) => g.geometry.z),
+      //   volGraphicsLayer
+      // );
       volGraphicsLayer.addMany(volGraphics);
     });
   };
