@@ -177,7 +177,6 @@ function Layers() {
     const debouncedUpdate = promiseUtils.debounce(async (event: any) => {
       const point = mapView.toMap({ x: event.x, y: event.y });
 
-      // const requestExtent = layer.fullExtent;
       const requestExtent = new Extent({
         xmin: point.x,
         ymin: point.y,
