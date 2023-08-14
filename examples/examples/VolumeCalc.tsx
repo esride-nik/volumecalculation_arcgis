@@ -129,8 +129,6 @@ function Layers() {
       const rings: number[][][] = [];
       rings[0] = [];
 
-      console.log('w*h === length', pixelData.pixelBlock.width * pixelData.pixelBlock.height === zValues.length);
-
       // eslint-disable-next-line unicorn/no-array-for-each
       zValues
         .filter((zValue: number) => zValue !== 0)
@@ -158,19 +156,6 @@ function Layers() {
         }),
         symbol: {
           type: 'polygon-3d',
-          // symbolLayers: [
-          //   {
-          //     type: 'object',
-          //     width: 1,
-          //     height: 1,
-          //     resource: {
-          //       primitive: 'cone',
-          //     },
-          //     material: {
-          //       color: symbolColor,
-          //     },
-          //   },
-          // ],
           symbolLayers: [
             {
               type: 'fill',
