@@ -1,6 +1,6 @@
 import * as promiseUtils from '@arcgis/core/core/promiseUtils';
 import Extent from '@arcgis/core/geometry/Extent';
-import Point from '@arcgis/core/geometry/Point';
+import Polygon from '@arcgis/core/geometry/Polygon';
 import Graphic from '@arcgis/core/Graphic';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
@@ -69,7 +69,7 @@ function Layers() {
     // Define elevationInfo and set it on the layer
     const currentElevationInfo = {
       mode: 'relative-to-ground',
-      offset: -1200,
+      // offset: -1200,
       // featureExpressionInfo: {
       //   expression: 'Geometry($feature).z - 1200',
       // },
@@ -123,36 +123,63 @@ function Layers() {
 
     const create3dGraphic = (
       pixelData: __esri.PixelData,
-      zValue: number,
-      index: number,
+      zValues: number[],
       symbolColor: string | __esri.Color
     ) => {
+      const rings: number[][][] = [];
+      rings[0] = [];
+      // eslint-disable-next-line unicorn/no-array-for-each
+      zValues
+        .filter((zValue: number) => zValue !== 0)
+        // eslint-disable-next-line unicorn/no-array-for-each
+        .forEach((zValue: number, index: number): void => {
+          rings[0].push([
+            pixelData.extent.xmin + index,
+            pixelData.extent.ymin + index,
+            zValue - 1200,
+          ]);
+        });
+      // close ring
+      rings[0].push([
+        pixelData.extent.xmin,
+        pixelData.extent.ymin,
+        zValues[0] - 1200,
+      ]);
+
       const g = new Graphic({
-        attributes: {
-          OBJECTID: index,
-        },
-        geometry: new Point({
+        geometry: new Polygon({
           spatialReference: pixelData.extent.spatialReference,
-          x: pixelData.extent.xmin + index,
-          y: pixelData.extent.ymin + index,
-          z: zValue,
+          rings,
         }),
         symbol: {
-          type: 'point-3d',
+          type: 'polygon-3d',
+          // symbolLayers: [
+          //   {
+          //     type: 'object',
+          //     width: 1,
+          //     height: 1,
+          //     resource: {
+          //       primitive: 'cone',
+          //     },
+          //     material: {
+          //       color: symbolColor,
+          //     },
+          //   },
+          // ],
           symbolLayers: [
             {
-              type: 'object',
-              width: 1,
-              height: 1,
-              resource: {
-                primitive: 'cone',
-              },
+              type: 'fill',
               material: {
                 color: symbolColor,
               },
+              outline: { color: symbolColor },
+              edges: {
+                type: 'solid',
+                color: [50, 50, 50, 0.5],
+              },
             },
           ],
-        } as unknown as __esri.PointSymbol3D,
+        } as unknown as __esri.PolygonSymbol3D,
       });
       return g;
     };
@@ -176,30 +203,24 @@ function Layers() {
       console.log('pixelData', pixelData);
 
       const volGraphics: Graphic[] = [];
-      // eslint-disable-next-line unicorn/no-array-for-each
-      (pixelData.pixelBlock.pixels[0] as number[]).forEach(
-        (value: number, index: number): void => {
-          const g = create3dGraphic(pixelData, value, index, '#FFD700');
-          volGraphics.push(g);
-        }
+      const poly0 = create3dGraphic(
+        pixelData,
+        pixelData.pixelBlock.pixels[0] as number[],
+        '#FFD700'
       );
-      // eslint-disable-next-line unicorn/no-array-for-each
-      (pixelData.pixelBlock.pixels[1] as number[]).forEach(
-        (value: number, index: number): void => {
-          const g = create3dGraphic(pixelData, value, index, '#D700FF');
-          volGraphics.push(g);
-        }
+      volGraphics.push(poly0);
+      const poly1 = create3dGraphic(
+        pixelData,
+        pixelData.pixelBlock.pixels[1] as number[],
+        '#D700FF'
       );
+      volGraphics.push(poly1);
 
-      const volGraphicsNoZeros = volGraphics.filter(
-        (g: Graphic) => g.geometry.z !== 0
+      console.log(
+        'adding graphic',
+        volGraphics.map((g: Graphic) => g.geometry.rings),
+        volGraphicsLayer
       );
-
-      // console.log(
-      //   'adding graphic',
-      //   volGraphicsNoZeros.map((g: Graphic) => g.geometry.z),
-      //   volGraphicsLayer
-      // );
       volGraphicsLayer.addMany(volGraphics);
     });
   };
