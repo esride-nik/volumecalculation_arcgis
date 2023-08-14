@@ -128,14 +128,19 @@ function Layers() {
     ) => {
       const rings: number[][][] = [];
       rings[0] = [];
+
+      console.log('w*h === length', pixelData.pixelBlock.width * pixelData.pixelBlock.height === zValues.length);
+
       // eslint-disable-next-line unicorn/no-array-for-each
       zValues
         .filter((zValue: number) => zValue !== 0)
         // eslint-disable-next-line unicorn/no-array-for-each
         .forEach((zValue: number, index: number): void => {
+          const posX = index % pixelData.pixelBlock.width;
+          const posY = Math.floor(index / pixelData.pixelBlock.height);
           rings[0].push([
-            pixelData.extent.xmin + index,
-            pixelData.extent.ymin + index,
+            pixelData.extent.xmin + posX,
+            pixelData.extent.ymin + posY,
             zValue - 1200,
           ]);
         });
