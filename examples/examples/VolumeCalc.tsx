@@ -1,31 +1,15 @@
-import Collection from '@arcgis/core/core/Collection';
 import * as promiseUtils from '@arcgis/core/core/promiseUtils';
 import Extent from '@arcgis/core/geometry/Extent';
 import Point from '@arcgis/core/geometry/Point';
 import Graphic from '@arcgis/core/Graphic';
-import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
 import ImageryTileLayer from '@arcgis/core/layers/ImageryTileLayer';
-import RasterColormapRenderer from '@arcgis/core/renderers/RasterColormapRenderer';
-import RasterStretchRenderer from '@arcgis/core/renderers/RasterStretchRenderer';
-import ColormapInfo from '@arcgis/core/renderers/support/ColormapInfo';
-import MapView from '@arcgis/core/views/MapView';
-import Expand from '@arcgis/core/widgets/Expand';
 import LayerList from '@arcgis/core/widgets/LayerList';
-import Legend from '@arcgis/core/widgets/Legend';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
-import {
-  ArcMapView,
-  ArcSceneView,
-  ArcUI,
-  ArcWidget,
-  useMapView,
-  useSceneView,
-} from '../../src';
+import { ArcSceneView, useSceneView } from '../../src';
 import { ArcGraphicsLayer } from '../../src/components/ArcLayer/generated/ArcGraphicsLayer';
-import { ArcImageryLayer } from '../../src/components/ArcLayer/generated/ArcImageryLayer';
 import { ArcImageryTileLayer } from '../../src/components/ArcLayer/generated/ArcImageryTileLayer';
 
 export default function VolumeCalc() {
@@ -225,44 +209,6 @@ function Layers() {
         volGraphicsLayer
       );
       volGraphicsLayer.addMany(volGraphics);
-
-      // const volGraphicsCollection = new Collection();
-      // volGraphicsCollection.addMany(volGraphicsNoZeros);
-      // const gFl = new FeatureLayer({
-      //   id: 'graphicFeatures',
-      //   source: volGraphicsCollection,
-      //   objectIdField: 'OBJECTID',
-      // });
-      // mapView.map.add(gFl);
-
-      // const colormapInfo = [
-      //   {
-      //     color: [0, 150, 0],
-      //     value: (pixelData.pixelBlock.statistics[0].minValue as number) - 500,
-      //     label: (pixelData.pixelBlock.statistics[0].minValue as number) - 500,
-      //   },
-      //   {
-      //     color: [150, 0, 0],
-      //     value: (pixelData.pixelBlock.statistics[0].maxValue as number) + 500,
-      //     label: (pixelData.pixelBlock.statistics[0].maxValue as number) + 500,
-      //   },
-      // ] as unknown as __esri.ColormapInfoProperties[];
-      // const renderer = new RasterColormapRenderer({
-      //   colormapInfos: colormapInfo,
-      // });
-
-      // TODO: this renderer doesn't quite work yet
-      // const renderer = new RasterStretchRenderer({
-      //   statistics: [
-      //     [
-      //       (pixelData.pixelBlock.statistics[0].minValue as number) - 500,
-      //       (pixelData.pixelBlock.statistics[0].maxValue as number) + 500,
-      //     ],
-      //   ],
-      //   stretchType: 'min-max',
-      // });
-      // console.log('renderer', renderer);
-      // layer.renderer = renderer;
     });
   };
 
