@@ -180,8 +180,8 @@ function Layers() {
       const requestExtent = new Extent({
         xmin: point.x,
         ymin: point.y,
-        xmax: point.x + 100,
-        ymax: point.y + 100,
+        xmax: point.x + 158, // more that 158 return empty pixelBlock! :/
+        ymax: point.y + 158,
         spatialReference: { wkid: 102_100 },
       });
       console.log('requestExtent', requestExtent);
