@@ -1,7 +1,9 @@
+import Collection from '@arcgis/core/core/Collection';
 import * as promiseUtils from '@arcgis/core/core/promiseUtils';
 import Extent from '@arcgis/core/geometry/Extent';
 import Point from '@arcgis/core/geometry/Point';
 import Graphic from '@arcgis/core/Graphic';
+import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
 import ImageryTileLayer from '@arcgis/core/layers/ImageryTileLayer';
@@ -29,9 +31,19 @@ import { ArcImageryTileLayer } from '../../src/components/ArcLayer/generated/Arc
 export default function VolumeCalc() {
   return (
     <ArcSceneView
-      map={{ basemap: 'oceans' }}
-      center={[-118.805, 34.027]}
-      zoom={7}
+      map={{
+        basemap: 'oceans',
+        ground: {
+          navigationConstraint: 'none',
+        },
+      }}
+      extent={{
+        spatialReference: { wkid: 102_100 },
+        xmin: -4_891_928.102_194_494,
+        ymin: -2_307_356.023_380_755_4,
+        xmax: -4_891_286.273_486_689,
+        ymax: -2_306_865.213_192_433,
+      }}
       style={{ height: '100vh' }}
       eventHandlers={{
         click: (e) => {
@@ -69,6 +81,18 @@ function Layers() {
   const onVolGraphicsViewCreated = (e: any) => {
     console.log('onVolGraphicsViewCreated', e);
     volGraphicsLayer = e.layerView.layer as GraphicsLayer;
+
+    // Define elevationInfo and set it on the layer
+    const currentElevationInfo = {
+      mode: 'relative-to-ground',
+      offset: 10,
+      featureExpressionInfo: {
+        expression: 'Geometry($feature).z * 1',
+      },
+      unit: 'meters',
+    } as unknown as __esri.GraphicsLayerElevationInfo;
+
+    volGraphicsLayer.elevationInfo = currentElevationInfo;
   };
 
   const onImgViewCreated = (e: __esri.ImageryLayerLayerviewCreateEvent) => {
@@ -150,33 +174,66 @@ function Layers() {
       (pixelData.pixelBlock.pixels[0] as number[]).forEach(
         (value0: number, index: number): void => {
           const g = new Graphic({
+            attributes: {
+              OBJECTID: index,
+            },
             geometry: new Point({
               spatialReference: pixelData.extent.spatialReference,
               x: pixelData.extent.xmin + index,
               y: pixelData.extent.ymin + index,
-              z: value0 * 100,
-              m: value0 * 100
+              z: Math.round(value0 / 10),
             }),
             symbol: {
               type: 'point-3d', // autocasts as new PointSymbol3D()
+              // symbolLayers: [
+              //   {
+              //     type: 'object', // autocasts as new ObjectSymbol3DLayer()
+              //     width: 5, // diameter of the object from east to west in meters
+              //     height: 5, // height of object in meters
+              //     depth: 5, // diameter of the object from north to south in meters
+              //     resource: { primitive: 'cube' },
+              //     material: { color: 'red' },
+              //     verticalOffset: 100,
+              //   },
+              // ],
               symbolLayers: [
                 {
                   type: 'object', // autocasts as new ObjectSymbol3DLayer()
-                  width: 5, // diameter of the object from east to west in meters
-                  height: 5, // height of object in meters
-                  depth: 5, // diameter of the object from north to south in meters
-                  resource: { primitive: 'cube' },
-                  material: { color: 'red' },
-                  verticalOffset: 100,
+                  width: 1,
+                  height: 1,
+                  resource: {
+                    primitive: 'cone',
+                  },
+                  material: {
+                    color: '#FFD700',
+                  },
                 },
               ],
-            } as unknown as __esri.PointSymbol3D
+            } as unknown as __esri.PointSymbol3D,
           });
           volGraphics.push(g);
         }
       );
 
+      const volGraphicsNoZeros = volGraphics.filter(
+        (g: Graphic) => g.geometry.z !== 0
+      );
+
+      console.log(
+        'adding graphic',
+        volGraphicsNoZeros.map((g: Graphic) => g.geometry.z),
+        volGraphicsLayer
+      );
       volGraphicsLayer.addMany(volGraphics);
+
+      // const volGraphicsCollection = new Collection();
+      // volGraphicsCollection.addMany(volGraphicsNoZeros);
+      // const gFl = new FeatureLayer({
+      //   id: 'graphicFeatures',
+      //   source: volGraphicsCollection,
+      //   objectIdField: 'OBJECTID',
+      // });
+      // mapView.map.add(gFl);
 
       // const colormapInfo = [
       //   {
