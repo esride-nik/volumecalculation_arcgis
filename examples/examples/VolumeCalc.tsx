@@ -18,21 +18,22 @@ export default function VolumeCalc() {
     <ArcSceneView
       map={{
         basemap: 'oceans',
-        ground: {
-          navigationConstraint: 'none',
-        },
+        ground: 'world-elevation',
+        // ground: {
+        //   navigationConstraint: 'none'
+        // },
       }}
-      extent={{
-        spatialReference: { wkid: 102_100 },
-        xmin: -4_891_928.102_194_494,
-        ymin: -2_307_356.023_380_755_4,
-        xmax: -4_891_286.273_486_689,
-        ymax: -2_306_865.213_192_433,
-      }}
+      // extent={{
+      //   spatialReference: { wkid: 102_100 },
+      //   xmin: -4_891_928.102_194_494,
+      //   ymin: -2_307_356.023_380_755_4,
+      //   xmax: -4_891_286.273_486_689,
+      //   ymax: -2_306_865.213_192_433,
+      // }}
       style={{ height: '100vh' }}
       eventHandlers={{
         click: (e) => {
-          console.log(e.mapPoint);
+          console.log('click event', e.mapPoint);
         },
       }}
       viewingMode="local"
@@ -43,7 +44,6 @@ export default function VolumeCalc() {
         xmax: -4_891_427.934_010_591,
         ymax: -2_306_963.309_761_594_5,
       }}
-      popupEnabled={true}
     >
       <Layers />
     </ArcSceneView>
@@ -204,7 +204,7 @@ function Layers() {
               material: {
                 color: symbolColor,
               },
-              outline: { color: symbolColor },
+              outline: { color: 'black' },
             },
           ],
         } as unknown as __esri.PolygonSymbol3D,
