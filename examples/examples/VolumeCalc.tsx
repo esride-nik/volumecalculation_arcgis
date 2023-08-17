@@ -6,14 +6,32 @@ import Graphic from '@arcgis/core/Graphic';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
 import ImageryTileLayer from '@arcgis/core/layers/ImageryTileLayer';
+import SceneView from '@arcgis/core/views/SceneView';
+import Expand from '@arcgis/core/widgets/Expand';
 import LayerList from '@arcgis/core/widgets/LayerList';
-import { useMemo } from 'react';
+import Legend from '@arcgis/core/widgets/Legend';
+import { useMemo, useState } from 'react';
 
-import { ArcSceneView, useSceneView } from '../../src';
+import { ArcSceneView, ArcUI, ArcWidget, useSceneView } from '../../src';
 import { ArcGraphicsLayer } from '../../src/components/ArcLayer/generated/ArcGraphicsLayer';
 import { ArcImageryTileLayer } from '../../src/components/ArcLayer/generated/ArcImageryTileLayer';
 
 export default function VolumeCalc() {
+  const [sceneView, setSceneView] = useState<SceneView>();
+
+  const legend = useMemo(
+    () =>
+      new Expand({
+        view: sceneView,
+        content: new Legend({
+          view: sceneView,
+        }),
+        expandTooltip: 'Legend',
+        expanded: true,
+      }),
+    [sceneView]
+  );
+
   return (
     <ArcSceneView
       map={{
@@ -44,8 +62,14 @@ export default function VolumeCalc() {
         xmax: -4_891_427.934_010_591,
         ymax: -2_306_963.309_761_594_5,
       }}
+      onViewCreated={setSceneView}
     >
       <Layers />
+
+      {/* Render the Legend Widget */}
+      <ArcUI position="bottom-right">
+        <ArcWidget widget={legend} />
+      </ArcUI>
     </ArcSceneView>
   );
 }
