@@ -71,7 +71,7 @@ function Layers() {
       mode: 'relative-to-ground',
       // offset: -1200,
       // featureExpressionInfo: {
-      //   expression: 'Geometry($feature).z - 1200',
+      //   expression: 'Geometry($feature).z * 0.5',
       // },
       unit: 'meters',
     } as unknown as __esri.GraphicsLayerElevationInfo;
@@ -121,38 +121,55 @@ function Layers() {
       });
     });
 
-    const create3dGraphic = (
+    const create3dGraphics = (
       pixelData: __esri.PixelData,
       zValues: number[],
       symbolColor: string | __esri.Color
-    ) => {
-      const rings: number[][][] = [];
-      rings[0] = [];
+    ): Graphic[] => {
+      const matrix: number[][][] = [];
+      let lastY = -1;
 
       // eslint-disable-next-line unicorn/no-array-for-each
       zValues
-        .filter((zValue: number) => zValue !== 0)
         // eslint-disable-next-line unicorn/no-array-for-each
         .forEach((zValue: number, index: number): void => {
           const posX = index % pixelData.pixelBlock.width;
           const posY = Math.floor(index / pixelData.pixelBlock.height);
-          rings[0].push([
+          if (lastY !== posY) {
+            matrix[posY] = [];
+            lastY = posY;
+          }
+          console.log(posY, posX, zValue);
+          matrix[posY][posX] = [
             pixelData.extent.xmin + posX,
             pixelData.extent.ymin + posY,
-            zValue - 1200,
-          ]);
+            zValue * 0.1, // todo: this factor should work in the elevationInfo.featureExpressionInfo but it doesn't! :/
+          ];
         });
-      // close ring
-      rings[0].push([
-        pixelData.extent.xmin,
-        pixelData.extent.ymin,
-        zValues[0] - 1200,
-      ]);
+
+      console.log(matrix);
+
+      const rings: number[][][] = [];
+      const ringCount = 0;
+      const mIndex = 0;
+      const gs: Graphic[] = [];
+
+      // while (mIndex < matrix.length) {
+      //   const oneRing = [];
+      //   matrix[mIndex].forEach((zValue: number) => {
+      //     oneRing.push([
+      //       pixelData.extent.xmin,
+      //       pixelData.extent.ymin,
+      //       zValue - 1200,
+      //     ]);
+      //   });
+      //   rings[ringCount];
+      // }
 
       const g = new Graphic({
         geometry: new Polygon({
           spatialReference: pixelData.extent.spatialReference,
-          rings,
+          rings: matrix,
         }),
         symbol: {
           type: 'polygon-3d',
@@ -171,7 +188,8 @@ function Layers() {
           ],
         } as unknown as __esri.PolygonSymbol3D,
       });
-      return g;
+
+      return [g];
     };
 
     const debouncedUpdate = promiseUtils.debounce(async (event: any) => {
@@ -192,24 +210,24 @@ function Layers() {
       console.log('pixelData', pixelData);
 
       const volGraphics: Graphic[] = [];
-      const poly0 = create3dGraphic(
+      const poly0 = create3dGraphics(
         pixelData,
         pixelData.pixelBlock.pixels[0] as number[],
         '#FFD700'
       );
-      volGraphics.push(poly0);
-      const poly1 = create3dGraphic(
+      volGraphics.push(...poly0);
+      const poly1 = create3dGraphics(
         pixelData,
         pixelData.pixelBlock.pixels[1] as number[],
         '#D700FF'
       );
-      volGraphics.push(poly1);
+      volGraphics.push(...poly1);
 
-      console.log(
-        'adding graphic',
-        volGraphics.map((g: Graphic) => g.geometry.rings),
-        volGraphicsLayer
-      );
+      // console.log(
+      //   'adding graphic',
+      //   volGraphics.map((g: Graphic) => g.geometry.rings),
+      //   volGraphicsLayer
+      // );
       volGraphicsLayer.addMany(volGraphics);
     });
   };
@@ -282,12 +300,9 @@ function Layers() {
     }
 
     // Set the new pixel values on the pixelBlock
-    // pixelData.pixelBlock.pixels = [rBand, gBand, bBand]; //assign rgb values to each pixel
-    // pixelData.pixelBlock.statistics = [];
-    // pixelData.pixelBlock.pixelType = "u8";
-    pixelData.pixelBlock.pixels = pixelData.pixelBlock.pixels;
-    pixelData.pixelBlock.statistics = pixelData.pixelBlock.statistics;
-    pixelData.pixelBlock.pixelType = pixelData.pixelBlock.pixelType;
+    pixelData.pixelBlock.pixels = [rBand, gBand, bBand]; //assign rgb values to each pixel
+    pixelData.pixelBlock.statistics = [];
+    pixelData.pixelBlock.pixelType = "u8";
   };
 
   return (
