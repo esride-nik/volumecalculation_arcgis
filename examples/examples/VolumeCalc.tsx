@@ -10,6 +10,7 @@ import SceneView from '@arcgis/core/views/SceneView';
 import Expand from '@arcgis/core/widgets/Expand';
 import LayerList from '@arcgis/core/widgets/LayerList';
 import Legend from '@arcgis/core/widgets/Legend';
+import Search from '@arcgis/core/widgets/Search';
 import { useMemo, useState } from 'react';
 
 import { ArcSceneView, ArcUI, ArcWidget, useSceneView } from '../../src';
@@ -27,6 +28,19 @@ export default function VolumeCalc() {
           view: sceneView,
         }),
         expandTooltip: 'Legend',
+        expanded: true,
+      }),
+    [sceneView]
+  );
+
+  const search = useMemo(
+    () =>
+      new Expand({
+        view: sceneView,
+        content: new Search({
+          view: sceneView,
+        }),
+        expandTooltip: 'Search',
         expanded: true,
       }),
     [sceneView]
@@ -54,21 +68,24 @@ export default function VolumeCalc() {
           console.log('click event', e.mapPoint);
         },
       }}
-      viewingMode="local"
-      clippingArea={{
-        spatialReference: { wkid: 102_100 },
-        xmin: -4_891_786.441_670_591,
-        ymin: -2_307_257.926_811_594,
-        xmax: -4_891_427.934_010_591,
-        ymax: -2_306_963.309_761_594_5,
-      }}
+      // viewingMode="local"
+      // clippingArea={{
+      //   spatialReference: { wkid: 102_100 },
+      //   xmin: -4_891_786.441_670_591,
+      //   ymin: -2_307_257.926_811_594,
+      //   xmax: -4_891_427.934_010_591,
+      //   ymax: -2_306_963.309_761_594_5,
+      // }}
       onViewCreated={setSceneView}
     >
       <Layers />
 
-      {/* Render the Legend Widget */}
       <ArcUI position="bottom-right">
         <ArcWidget widget={legend} />
+      </ArcUI>
+
+      <ArcUI position="bottom-right">
+        <ArcWidget widget={search} />
       </ArcUI>
     </ArcSceneView>
   );
