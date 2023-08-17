@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-array-for-each */
 import * as promiseUtils from '@arcgis/core/core/promiseUtils';
 import Extent from '@arcgis/core/geometry/Extent';
 import Polygon from '@arcgis/core/geometry/Polygon';
@@ -139,7 +140,7 @@ function Layers() {
             matrix[posY] = [];
             lastY = posY;
           }
-          console.log(posY, posX, zValue);
+          // console.log(posY, posX, zValue);
           matrix[posY][posX] = [
             pixelData.extent.xmin + posX,
             pixelData.extent.ymin + posY,
@@ -150,27 +151,51 @@ function Layers() {
       console.log(matrix);
 
       const rings: number[][][] = [];
-      const ringCount = 0;
-      const mIndex = 0;
-      const gs: Graphic[] = [];
+      let ringCount = 0;
+      let mIndex = 0;
+      const skipZeros = true;
 
-      // while (mIndex < matrix.length) {
-      //   const oneRing = [];
-      //   matrix[mIndex].forEach((zValue: number) => {
-      //     oneRing.push([
-      //       pixelData.extent.xmin,
-      //       pixelData.extent.ymin,
-      //       zValue - 1200,
-      //     ]);
-      //   });
-      //   rings[ringCount];
-      // }
+      while (mIndex < matrix.length - 1) {
+        const oneRing: number[][] = [];
+        // first row forward
+        console.log(mIndex, matrix[mIndex]);
+        matrix[mIndex].reverse().forEach((point: number[]) => {
+          if (!skipZeros || point[2] !== 0) {
+            oneRing.push([point[0], point[1], point[2]]);
+          }
+        });
+        if (oneRing.length > 0) oneRing.push(oneRing[0]);
+        mIndex++;
+        // second row backward
+        console.log(mIndex, matrix[mIndex]);
+        matrix[mIndex].forEach((point: number[]) => {
+          if (!skipZeros || point[2] !== 0) {
+            oneRing.push([point[0], point[1], point[2]]);
+          }
+        });
+        if (oneRing.length > 0) oneRing.push(oneRing[0]);
+
+        rings[ringCount] = oneRing;
+        ringCount++;
+      }
 
       const g = new Graphic({
         geometry: new Polygon({
           spatialReference: pixelData.extent.spatialReference,
-          rings: matrix,
+          rings,
         }),
+        // symbol: {
+        //   type: 'polygon-3d',
+        //   symbolLayers: [
+        //     {
+        //       type: 'water',
+        //       waveDirection: 180,
+        //       color: '#5975a3',
+        //       waveStrength: 'moderate',
+        //       waterbodySize: 'small',
+        //     },
+        //   ],
+        // },
         symbol: {
           type: 'polygon-3d',
           symbolLayers: [
@@ -180,10 +205,6 @@ function Layers() {
                 color: symbolColor,
               },
               outline: { color: symbolColor },
-              edges: {
-                type: 'solid',
-                color: [50, 50, 50, 0.5],
-              },
             },
           ],
         } as unknown as __esri.PolygonSymbol3D,
@@ -302,7 +323,7 @@ function Layers() {
     // Set the new pixel values on the pixelBlock
     pixelData.pixelBlock.pixels = [rBand, gBand, bBand]; //assign rgb values to each pixel
     pixelData.pixelBlock.statistics = [];
-    pixelData.pixelBlock.pixelType = "u8";
+    pixelData.pixelBlock.pixelType = 'u8';
   };
 
   return (
