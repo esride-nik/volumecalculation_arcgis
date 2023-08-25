@@ -28,20 +28,28 @@ export default function VolumeCalc() {
           view: sceneView,
         }),
         expandTooltip: 'Legend',
-        expanded: true,
+        expanded: false,
+      }),
+    [sceneView]
+  );
+
+  const layerList = useMemo(
+    () =>
+      new Expand({
+        view: sceneView,
+        content: new LayerList({
+          view: sceneView,
+        }),
+        expandTooltip: 'Search',
+        expanded: false,
       }),
     [sceneView]
   );
 
   const search = useMemo(
     () =>
-      new Expand({
+      new Search({
         view: sceneView,
-        content: new Search({
-          view: sceneView,
-        }),
-        expandTooltip: 'Search',
-        expanded: true,
       }),
     [sceneView]
   );
@@ -63,11 +71,11 @@ export default function VolumeCalc() {
       //   ymax: -2_306_865.213_192_433,
       // }}
       style={{ height: '100vh' }}
-      eventHandlers={{
-        click: (e) => {
-          console.log('click event', e.mapPoint);
-        },
-      }}
+      // eventHandlers={{
+      //   click: (e) => {
+      //     console.log('click event', e.mapPoint);
+      //   },
+      // }}
       // viewingMode="local"
       // clippingArea={{
       //   spatialReference: { wkid: 102_100 },
@@ -81,28 +89,24 @@ export default function VolumeCalc() {
       <Layers />
 
       <ArcUI position="bottom-right">
-        <ArcWidget widget={legend} />
+        <ArcWidget widget={search} />
       </ArcUI>
 
       <ArcUI position="bottom-right">
-        <ArcWidget widget={search} />
+        <ArcWidget widget={layerList} />
+      </ArcUI>
+
+      <ArcUI position="bottom-right">
+        <ArcWidget widget={legend} />
       </ArcUI>
     </ArcSceneView>
   );
 }
 
 function Layers() {
-  const mapView = useSceneView();
+  const sceneView = useSceneView();
   let imgLayer: ImageryLayer;
   let volGraphicsLayer: GraphicsLayer;
-
-  const layerList = useMemo(
-    () =>
-      new LayerList({
-        view: mapView,
-      }),
-    [mapView]
-  );
 
   const onVolGraphicsViewCreated = (e: any) => {
     console.log('onVolGraphicsViewCreated', e);
@@ -123,7 +127,7 @@ function Layers() {
 
   const onImgViewCreated = (e: __esri.ImageryLayerLayerviewCreateEvent) => {
     imgLayer = e.layerView.layer as ImageryLayer;
-    mapView.goTo(imgLayer.fullExtent);
+    sceneView.goTo(imgLayer.fullExtent);
     console.log('LayerView for imagery created!', imgLayer.title);
 
     imgLayer.renderer = {
@@ -154,7 +158,7 @@ function Layers() {
     // });
     // (layer as ImageryTileLayer).rasterFunction = extractBand;
 
-    mapView.on(['click'], (event: any) => {
+    sceneView.on(['click'], (event: any) => {
       debouncedUpdate(event).catch((error: any) => {
         console.error(error);
         if (!promiseUtils.isAbortError(error)) {
@@ -255,7 +259,7 @@ function Layers() {
     };
 
     const debouncedUpdate = promiseUtils.debounce(async (event: any) => {
-      const point = mapView.toMap({ x: event.x, y: event.y });
+      const point = sceneView.toMap({ x: event.x, y: event.y });
 
       const requestExtent = new Extent({
         xmin: point.x,
