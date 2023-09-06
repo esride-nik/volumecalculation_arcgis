@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/numeric-separators-style */
 /* eslint-disable unicorn/no-array-for-each */
 import * as promiseUtils from '@arcgis/core/core/promiseUtils';
 import Extent from '@arcgis/core/geometry/Extent';
@@ -57,7 +58,7 @@ export default function VolumeCalc() {
   return (
     <ArcSceneView
       map={{
-        basemap: 'oceans',
+        basemap: 'streets',
         ground: 'world-elevation',
         // ground: {
         //   navigationConstraint: 'none'
@@ -128,7 +129,12 @@ function Layers() {
   const onImgViewCreated = (e: __esri.ImageryLayerLayerviewCreateEvent) => {
     imgLayer = e.layerView.layer as ImageryLayer;
     sceneView.goTo(imgLayer.fullExtent);
-    console.log('LayerView for imagery created!', imgLayer.title);
+    console.log(
+      'LayerView for imagery created!',
+      imgLayer,
+      imgLayer?.rasterInfo?.pixelSize?.x,
+      imgLayer?.rasterInfo?.pixelSize?.y
+    );
 
     imgLayer.renderer = {
       computeGamma: false,
@@ -189,7 +195,8 @@ function Layers() {
           matrix[posY][posX] = [
             pixelData.extent.xmin + posX,
             pixelData.extent.ymin + posY,
-            zValue * 0.1, // todo: this factor should work in the elevationInfo.featureExpressionInfo but it doesn't! :/
+            // TODO: to bring the z values on the DEM, query the elevation layer and subtract
+            zValue * 0.1, // TODO: this factor should work in the elevationInfo.featureExpressionInfo but it doesn't! :/
           ];
         });
 
@@ -261,15 +268,44 @@ function Layers() {
     const debouncedUpdate = promiseUtils.debounce(async (event: any) => {
       const point = sceneView.toMap({ x: event.x, y: event.y });
 
+      const idResult = await imgLayer.identify({geometry: point});
+      console.log("idResult", idResult);
+
+      /*
+{"spatialReference":{"wkid":102100},"xmin":-4891674.043387455,"ymin":-2307140.978060443,"xmax":-4891516.043387455,"ymax":-2306982.978060443}
+{"spatialReference":{"wkid":102100},"xmin":,"ymin":,"xmax":,"ymax":}
+*/
+      // // 158 x 158
+      // const requestExtent = new Extent({
+      //   xmin: -4891632.537857399,
+      //   ymin: -2307112.9321432416,
+      //   xmax: -4891474.537857399,
+      //   ymax: -2306954.9321432416,
+      //   spatialReference: { wkid: 102100 },
+      // });
+
+      // // 10 x 10
+      // const requestExtent = new Extent({
+      //   xmin: -4891484.537857399,
+      //   ymin: -2306964.9321432416,
+      //   xmax: -4891474.537857399,
+      //   ymax: -2306954.9321432416,
+      //   spatialReference: { wkid: 102100 },
+      // });
+
       const requestExtent = new Extent({
         xmin: point.x,
         ymin: point.y,
-        xmax: point.x + 158, // more that 158 return empty pixelBlock! :/
+        // xmax: point.x + 10,
+        // ymax: point.y + 10,
+        xmax: point.x + 158, // TODO: more that 158 return empty pixelBlock! :/
         ymax: point.y + 158,
         spatialReference: { wkid: 102_100 },
       });
+
       console.log('requestExtent', requestExtent);
 
+      // TODO: check if pixelBlock is queryable in a different way
       const pixelData = (await (
         imgLayer as unknown as ImageryTileLayer
       ).fetchPixels(requestExtent, 10, 10)) as __esri.PixelData;
