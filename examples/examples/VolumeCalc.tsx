@@ -270,6 +270,7 @@ function Layers() {
 
       const idResult = await imgLayer.identify({geometry: point});
       console.log("idResult", idResult);
+      // TODO: How to get data from [or into via AGP] RasterIdentifyResult.dataSeries https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#RasterIdentifyResult
 
       /*
 {"spatialReference":{"wkid":102100},"xmin":-4891674.043387455,"ymin":-2307140.978060443,"xmax":-4891516.043387455,"ymax":-2306982.978060443}
