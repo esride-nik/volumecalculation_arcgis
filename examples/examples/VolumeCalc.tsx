@@ -268,49 +268,52 @@ function Layers() {
     const debouncedUpdate = promiseUtils.debounce(async (event: any) => {
       const point = sceneView.toMap({ x: event.x, y: event.y });
 
-      const idResult = await imgLayer.identify({geometry: point});
-      console.log("idResult", idResult);
+      const idResult = await imgLayer.identify({ geometry: point });
+      console.log('idResult', idResult);
       // TODO: How to get data from [or into via AGP] RasterIdentifyResult.dataSeries https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#RasterIdentifyResult
       // TODO: Check the following flag to see if dataSeries is there: layer.rasterInfo.hasMultidimensionalTranspose (not documented!!) => https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#rasterInfo
 
-      /*
-{"spatialReference":{"wkid":102100},"xmin":-4891674.043387455,"ymin":-2307140.978060443,"xmax":-4891516.043387455,"ymax":-2306982.978060443}
-{"spatialReference":{"wkid":102100},"xmin":,"ymin":,"xmax":,"ymax":}
-*/
-      // // 158 x 158
-      // const requestExtent = new Extent({
-      //   xmin: -4891632.537857399,
-      //   ymin: -2307112.9321432416,
-      //   xmax: -4891474.537857399,
-      //   ymax: -2306954.9321432416,
-      //   spatialReference: { wkid: 102100 },
-      // });
 
-      // // 10 x 10
       // const requestExtent = new Extent({
-      //   xmin: -4891484.537857399,
-      //   ymin: -2306964.9321432416,
-      //   xmax: -4891474.537857399,
-      //   ymax: -2306954.9321432416,
-      //   spatialReference: { wkid: 102100 },
+      //   xmin: point.x,
+      //   ymin: point.y,
+      //   // xmax: point.x + 10,
+      //   // ymax: point.y + 10,
+      //   xmax: point.x + 158, // TODO: more that 158 return empty pixelBlock! :/
+      //   ymax: point.y + 158,
+      //   spatialReference: { wkid: 102_100 },
       // });
 
       const requestExtent = new Extent({
-        xmin: point.x,
-        ymin: point.y,
-        // xmax: point.x + 10,
-        // ymax: point.y + 10,
-        xmax: point.x + 158, // TODO: more that 158 return empty pixelBlock! :/
-        ymax: point.y + 158,
+        xmin: sceneView.extent.xmin,
+        ymin: sceneView.extent.ymin,
+        xmax: sceneView.extent.xmax,
+        ymax: sceneView.extent.ymax,
         spatialReference: { wkid: 102_100 },
       });
-
       console.log('requestExtent', requestExtent);
 
-      // TODO: check if pixelBlock is queryable in a different way
       const pixelData = (await (
         imgLayer as unknown as ImageryTileLayer
-      ).fetchPixels(requestExtent, 10, 10)) as __esri.PixelData;
+      ).fetchPixels(
+        sceneView.extent,
+        sceneView.width,
+        sceneView.height
+      )) as __esri.PixelData;
+
+      const resolutionX = sceneView.extent.width / pixelData.pixelBlock.width;
+      const resolutionY = sceneView.extent.height / pixelData.pixelBlock.height;
+
+      // const pixelBlockWidth = 10;
+      // const pixelBlockHeight = 10;
+      // const pixelData = (await (
+      //   imgLayer as unknown as ImageryTileLayer
+      // ).fetchPixels(
+      //   requestExtent,
+      //   pixelBlockWidth,
+      //   pixelBlockHeight
+      // )) as __esri.PixelData;
+
       console.log('pixelData', pixelData);
 
       const volGraphics: Graphic[] = [];
