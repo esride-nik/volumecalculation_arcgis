@@ -176,7 +176,9 @@ function Layers() {
     const create3dGraphics = (
       pixelData: __esri.PixelData,
       zValues: number[],
-      symbolColor: string | __esri.Color
+      symbolColor: string | __esri.Color,
+      resolutionX: number,
+      resolutionY: number
     ): Graphic[] => {
       const matrix: number[][][] = [];
       let lastY = -1;
@@ -191,16 +193,15 @@ function Layers() {
             matrix[posY] = [];
             lastY = posY;
           }
-          // console.log(posY, posX, zValue);
           matrix[posY][posX] = [
-            pixelData.extent.xmin + posX,
-            pixelData.extent.ymin + posY,
+            pixelData.extent.xmin + posX * resolutionX,
+            pixelData.extent.ymin + posY * resolutionY,
             // TODO: to bring the z values on the DEM, query the elevation layer and subtract
             zValue * 0.1, // TODO: this factor should work in the elevationInfo.featureExpressionInfo but it doesn't! :/
           ];
         });
 
-      console.log(matrix);
+      // console.log(matrix);
 
       const rings: number[][][] = [];
       let ringCount = 0;
@@ -210,7 +211,6 @@ function Layers() {
       while (mIndex < matrix.length - 1) {
         const oneRing: number[][] = [];
         // first row forward
-        console.log(mIndex, matrix[mIndex]);
         matrix[mIndex].reverse().forEach((point: number[]) => {
           if (!skipZeros || point[2] !== 0) {
             oneRing.push([point[0], point[1], point[2]]);
@@ -219,7 +219,6 @@ function Layers() {
         if (oneRing.length > 0) oneRing.push(oneRing[0]);
         mIndex++;
         // second row backward
-        console.log(mIndex, matrix[mIndex]);
         matrix[mIndex].forEach((point: number[]) => {
           if (!skipZeros || point[2] !== 0) {
             oneRing.push([point[0], point[1], point[2]]);
@@ -265,14 +264,9 @@ function Layers() {
       return [g];
     };
 
-    const debouncedUpdate = promiseUtils.debounce(async (event: any) => {
-      const point = sceneView.toMap({ x: event.x, y: event.y });
-
-      const idResult = await imgLayer.identify({ geometry: point });
-      console.log('idResult', idResult);
+    const debouncedUpdate = promiseUtils.debounce(async () => {
       // TODO: How to get data from [or into via AGP] RasterIdentifyResult.dataSeries https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#RasterIdentifyResult
       // TODO: Check the following flag to see if dataSeries is there: layer.rasterInfo.hasMultidimensionalTranspose (not documented!!) => https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#rasterInfo
-
 
       // const requestExtent = new Extent({
       //   xmin: point.x,
@@ -304,6 +298,11 @@ function Layers() {
       const resolutionX = sceneView.extent.width / pixelData.pixelBlock.width;
       const resolutionY = sceneView.extent.height / pixelData.pixelBlock.height;
 
+      // ImageryTileLayer will fetch pixels from nearest raster data source level based on the requested resolution.
+      // Similarly, you can calculate the width and height needed for 0.6meter resolution.
+
+      console.log('resolution', resolutionX, resolutionY);
+
       // const pixelBlockWidth = 10;
       // const pixelBlockHeight = 10;
       // const pixelData = (await (
@@ -320,21 +319,20 @@ function Layers() {
       const poly0 = create3dGraphics(
         pixelData,
         pixelData.pixelBlock.pixels[0] as number[],
-        '#FFD700'
+        '#FFD700',
+        resolutionX,
+        resolutionY
       );
       volGraphics.push(...poly0);
       const poly1 = create3dGraphics(
         pixelData,
         pixelData.pixelBlock.pixels[1] as number[],
-        '#D700FF'
+        '#D700FF',
+        resolutionX,
+        resolutionY
       );
       volGraphics.push(...poly1);
 
-      // console.log(
-      //   'adding graphic',
-      //   volGraphics.map((g: Graphic) => g.geometry.rings),
-      //   volGraphicsLayer
-      // );
       volGraphicsLayer.addMany(volGraphics);
     });
   };
