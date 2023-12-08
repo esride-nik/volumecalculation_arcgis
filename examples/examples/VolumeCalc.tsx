@@ -2,6 +2,7 @@
 /* eslint-disable unicorn/no-array-for-each */
 import * as promiseUtils from '@arcgis/core/core/promiseUtils';
 import Extent from '@arcgis/core/geometry/Extent';
+import Mesh from '@arcgis/core/geometry/Mesh';
 import Polygon from '@arcgis/core/geometry/Polygon';
 import Graphic from '@arcgis/core/Graphic';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
@@ -264,6 +265,60 @@ function Layers() {
       return [g];
     };
 
+    const create3dMesh = (
+      pixelData: __esri.PixelData,
+      zValues: number[],
+      symbolColor: string | __esri.Color,
+      resolutionX: number,
+      resolutionY: number
+    ) => {
+      const rings: number[][][] = [];
+      rings[0] = [];
+
+      // eslint-disable-next-line unicorn/no-array-for-each
+      zValues
+        // eslint-disable-next-line unicorn/no-array-for-each
+        .forEach((zValue: number, index: number): void => {
+          const posX = index % pixelData.pixelBlock.width;
+          const posY = Math.floor(index / pixelData.pixelBlock.height);
+          rings[0].push([
+            pixelData.extent.xmin + posX,
+            pixelData.extent.ymin + posY,
+            zValue - 1200,
+          ]);
+        });
+      // close ring
+      rings[0].push([
+        pixelData.extent.xmin,
+        pixelData.extent.ymin,
+        zValues[0] - 1200,
+      ]);
+
+      const g = new Graphic({
+        geometry: new Mesh({
+          spatialReference: pixelData.extent.spatialReference,
+          rings,
+        }),
+        symbol: {
+          type: 'polygon-3d',
+          symbolLayers: [
+            {
+              type: 'fill',
+              material: {
+                color: symbolColor,
+              },
+              outline: { color: symbolColor },
+              edges: {
+                type: 'solid',
+                color: [50, 50, 50, 0.5],
+              },
+            },
+          ],
+        } as unknown as __esri.PolygonSymbol3D,
+      });
+      return [g];
+    };
+
     const debouncedUpdate = promiseUtils.debounce(
       async (event: __esri.ViewClickEvent) => {
         // TODO: How to get data from [or into via AGP] RasterIdentifyResult.dataSeries https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#RasterIdentifyResult
@@ -307,7 +362,8 @@ function Layers() {
         console.log('pixelData', pixelData);
 
         const volGraphics: Graphic[] = [];
-        const poly0 = create3dGraphics(
+        // const poly0 = create3dGraphics(
+        const poly0 = create3dMesh(
           pixelData,
           pixelData.pixelBlock.pixels[0] as number[],
           '#FFD700',
@@ -316,7 +372,8 @@ function Layers() {
         );
         volGraphics.push(...poly0);
 
-        const poly1 = create3dGraphics(
+        // const poly1 = create3dGraphics(
+        const poly1 = create3dMesh(
           pixelData,
           pixelData.pixelBlock.pixels[1] as number[],
           '#D700FF',
