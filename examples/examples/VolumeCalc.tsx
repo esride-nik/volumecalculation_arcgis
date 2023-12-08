@@ -380,7 +380,7 @@ function Layers() {
         geometry: new Mesh({
           spatialReference: pixelData.extent.spatialReference,
           vertexAttributes: {
-            posSliced,
+            position: posSliced,
           },
         }),
         symbol: {
