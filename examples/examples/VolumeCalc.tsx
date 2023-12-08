@@ -352,6 +352,23 @@ function Layers() {
 
            2.2   2.4   2.6 ...
       */
+
+      const allPoints: number[][][] = [];
+      const zAdd = -1200;
+
+      zValues.forEach((zValue: number, index: number): void => {
+        const posY = Math.floor(index / pixelData.pixelBlock.height);
+        if (!allPoints[posY]) allPoints[posY] = [];
+
+        const posX = index % pixelData.pixelBlock.width;
+        allPoints[posY][posX] = [
+          pixelData.extent.xmin + posX,
+          pixelData.extent.ymin + posY,
+          zValue + zAdd,
+        ];
+      });
+      console.log('allPoints', allPoints);
+
       // eslint-disable-next-line unicorn/no-array-for-each
       zValues
         // eslint-disable-next-line unicorn/no-array-for-each
