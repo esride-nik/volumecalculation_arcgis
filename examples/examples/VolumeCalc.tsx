@@ -265,6 +265,78 @@ function Layers() {
       return [g];
     };
 
+    const createPositionPt = (
+      index: number,
+      zValues: number[],
+      pixelData: __esri.PixelData,
+      zHeight = 0
+    ): number[] => {
+      const posX = index % pixelData.pixelBlock.width;
+      const posY = Math.floor(index / pixelData.pixelBlock.height);
+      return [
+        pixelData.extent.xmin + posX,
+        pixelData.extent.ymin + posY,
+        zValues[index] + zHeight,
+      ];
+    };
+
+    const createPMesh = (
+      pixelData: __esri.PixelData,
+      zValues: number[],
+      symbolColor: string | __esri.Color,
+      resolutionX: number,
+      resolutionY: number
+    ) => {
+      // Create a mesh geometry representing a pyramid
+      const pyramidMesh = new Mesh({
+        spatialReference: pixelData.extent.spatialReference,
+        vertexAttributes: {
+          // vertex positions for the Louvre pyramid, Paris
+          position: [
+            // vertex 0 - base of the pyramid, south
+            // 2.336006, 48.860818, 0,
+            ...createPositionPt(0, zValues, pixelData),
+
+            // vertex 1 - base of the pyramid, east
+            // 2.336172, 48.861114, 0,
+            ...createPositionPt(1, zValues, pixelData),
+
+            // vertex 2 - base of the pyramid, north
+            // 2.335724, 48.861229, 0,
+            ...createPositionPt(2, zValues, pixelData),
+
+            // vertex 3 - base of the pyramid, west
+            // 2.335563, 48.860922, 0,
+            ...createPositionPt(3, zValues, pixelData),
+
+            // vertex 4 - top of the pyramid
+            // 2.335896, 48.861024, 21,
+            ...createPositionPt(4, zValues, pixelData, 10),
+          ],
+        },
+        // Add a single component with faces that index the vertices
+        // so we only need to define them once
+        components: [
+          {
+            faces: [0, 4, 3, 0, 1, 4, 1, 2, 4, 2, 3, 4],
+          },
+        ],
+        // specify a spatial reference if the position of the vertices is not in WGS84
+      });
+
+      // add the mesh geometry to a graphic
+      const graphic = new Graphic({
+        geometry: pyramidMesh,
+        symbol: {
+          type: 'mesh-3d',
+          symbolLayers: [{ type: 'fill' }],
+        },
+      });
+
+      sceneView.goTo(graphic);
+      return [graphic];
+    };
+
     const create3dMesh = (
       pixelData: __esri.PixelData,
       zValues: number[],
@@ -272,8 +344,7 @@ function Layers() {
       resolutionX: number,
       resolutionY: number
     ) => {
-      const rings: number[][][] = [];
-      rings[0] = [];
+      const position: number[] = [];
 
       // eslint-disable-next-line unicorn/no-array-for-each
       zValues
@@ -281,26 +352,39 @@ function Layers() {
         .forEach((zValue: number, index: number): void => {
           const posX = index % pixelData.pixelBlock.width;
           const posY = Math.floor(index / pixelData.pixelBlock.height);
-          rings[0].push([
+          position.push(
             pixelData.extent.xmin + posX,
             pixelData.extent.ymin + posY,
-            zValue - 1200,
-          ]);
+            zValue - 1200
+          );
         });
-      // close ring
-      rings[0].push([
-        pixelData.extent.xmin,
-        pixelData.extent.ymin,
-        zValues[0] - 1200,
-      ]);
+      console.log('position', position, position.length, position.length % 9);
+      const posSliced = position.slice(
+        0,
+        position.length - (position.length % 9)
+      );
+      console.log(
+        'posSliced',
+        posSliced,
+        posSliced.length,
+        posSliced.length % 9
+      );
+      // // close ring
+      // position.push(
+      //   pixelData.extent.xmin,
+      //   pixelData.extent.ymin,
+      //   zValues[0] - 1200
+      // );
 
       const g = new Graphic({
         geometry: new Mesh({
           spatialReference: pixelData.extent.spatialReference,
-          rings,
+          vertexAttributes: {
+            posSliced,
+          },
         }),
         symbol: {
-          type: 'polygon-3d',
+          type: 'mesh-3d',
           symbolLayers: [
             {
               type: 'fill',
@@ -314,7 +398,7 @@ function Layers() {
               },
             },
           ],
-        } as unknown as __esri.PolygonSymbol3D,
+        } as unknown as __esri.MeshSymbol3D,
       });
       return [g];
     };
