@@ -264,77 +264,79 @@ function Layers() {
       return [g];
     };
 
-    const debouncedUpdate = promiseUtils.debounce(async () => {
-      // TODO: How to get data from [or into via AGP] RasterIdentifyResult.dataSeries https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#RasterIdentifyResult
-      // TODO: Check the following flag to see if dataSeries is there: layer.rasterInfo.hasMultidimensionalTranspose (not documented!!) => https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#rasterInfo
+    const debouncedUpdate = promiseUtils.debounce(
+      async (event: __esri.ViewClickEvent) => {
+        // TODO: How to get data from [or into via AGP] RasterIdentifyResult.dataSeries https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#RasterIdentifyResult
+        // TODO: Check the following flag to see if dataSeries is there: layer.rasterInfo.hasMultidimensionalTranspose (not documented!!) => https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-ImageryTileLayer.html#rasterInfo
 
-      // const requestExtent = new Extent({
-      //   xmin: point.x,
-      //   ymin: point.y,
-      //   // xmax: point.x + 10,
-      //   // ymax: point.y + 10,
-      //   xmax: point.x + 158, // TODO: more that 158 return empty pixelBlock! :/
-      //   ymax: point.y + 158,
-      //   spatialReference: { wkid: 102_100 },
-      // });
+        const mapPoint = event.mapPoint;
 
-      const requestExtent = new Extent({
-        xmin: sceneView.extent.xmin,
-        ymin: sceneView.extent.ymin,
-        xmax: sceneView.extent.xmax,
-        ymax: sceneView.extent.ymax,
-        spatialReference: { wkid: 102_100 },
-      });
-      console.log('requestExtent', requestExtent);
+        // TODO: more that 158 return empty pixelBlock! :/
+        const pixelBlockWidth = 158;
+        const pixelBlockHeight = 158;
+        const requestExtent = new Extent({
+          xmin: mapPoint.x,
+          ymin: mapPoint.y,
+          xmax: mapPoint.x + pixelBlockWidth,
+          ymax: mapPoint.y + pixelBlockHeight,
+          spatialReference: { wkid: 102_100 },
+        });
 
-      const pixelData = (await (
-        imgLayer as unknown as ImageryTileLayer
-      ).fetchPixels(
-        sceneView.extent,
-        sceneView.width,
-        sceneView.height
-      )) as __esri.PixelData;
+        // const requestExtent = new Extent({
+        //   xmin: sceneView.extent.xmin,
+        //   ymin: sceneView.extent.ymin,
+        //   xmax: sceneView.extent.xmax,
+        //   ymax: sceneView.extent.ymax,
+        //   spatialReference: { wkid: 102_100 },
+        // });
+        console.log('requestExtent', requestExtent);
 
-      const resolutionX = sceneView.extent.width / pixelData.pixelBlock.width;
-      const resolutionY = sceneView.extent.height / pixelData.pixelBlock.height;
+        // const pixelData = (await (
+        //   imgLayer as unknown as ImageryTileLayer
+        // ).fetchPixels(
+        //   sceneView.extent,
+        //   sceneView.width,
+        //   sceneView.height
+        // )) as __esri.PixelData;
 
-      // ImageryTileLayer will fetch pixels from nearest raster data source level based on the requested resolution.
-      // Similarly, you can calculate the width and height needed for 0.6meter resolution.
+        const pixelData = (await (
+          imgLayer as unknown as ImageryTileLayer
+        ).fetchPixels(
+          requestExtent,
+          pixelBlockWidth,
+          pixelBlockHeight
+        )) as __esri.PixelData;
 
-      console.log('resolution', resolutionX, resolutionY);
+        const resolutionX = requestExtent.width / pixelData.pixelBlock.width;
+        const resolutionY = requestExtent.height / pixelData.pixelBlock.height;
 
-      // const pixelBlockWidth = 10;
-      // const pixelBlockHeight = 10;
-      // const pixelData = (await (
-      //   imgLayer as unknown as ImageryTileLayer
-      // ).fetchPixels(
-      //   requestExtent,
-      //   pixelBlockWidth,
-      //   pixelBlockHeight
-      // )) as __esri.PixelData;
+        // ImageryTileLayer will fetch pixels from nearest raster data source level based on the requested resolution.
+        // Similarly, you can calculate the width and height needed for 0.6meter resolution.
+        console.log('resolution', resolutionX, resolutionY);
+        console.log('pixelData', pixelData);
 
-      console.log('pixelData', pixelData);
+        const volGraphics: Graphic[] = [];
+        const poly0 = create3dGraphics(
+          pixelData,
+          pixelData.pixelBlock.pixels[0] as number[],
+          '#FFD700',
+          resolutionX,
+          resolutionY
+        );
+        volGraphics.push(...poly0);
 
-      const volGraphics: Graphic[] = [];
-      const poly0 = create3dGraphics(
-        pixelData,
-        pixelData.pixelBlock.pixels[0] as number[],
-        '#FFD700',
-        resolutionX,
-        resolutionY
-      );
-      volGraphics.push(...poly0);
-      const poly1 = create3dGraphics(
-        pixelData,
-        pixelData.pixelBlock.pixels[1] as number[],
-        '#D700FF',
-        resolutionX,
-        resolutionY
-      );
-      volGraphics.push(...poly1);
+        const poly1 = create3dGraphics(
+          pixelData,
+          pixelData.pixelBlock.pixels[1] as number[],
+          '#D700FF',
+          resolutionX,
+          resolutionY
+        );
+        volGraphics.push(...poly1);
 
-      volGraphicsLayer.addMany(volGraphics);
-    });
+        volGraphicsLayer.addMany(volGraphics);
+      }
+    );
   };
 
   const pixelFilterFunction = (pixelData: __esri.PixelData) => {
