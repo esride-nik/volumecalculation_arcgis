@@ -346,6 +346,12 @@ function Layers() {
     ) => {
       const position: number[] = [];
 
+      // TODO: bring these inorder: triangles should consist of: [1.1, 1.3, 2.2] [2.2, 2.4, 1.3] ...
+      /*
+        1.1   1.3   1.5 ...
+
+           2.2   2.4   2.6 ...
+      */
       // eslint-disable-next-line unicorn/no-array-for-each
       zValues
         // eslint-disable-next-line unicorn/no-array-for-each
@@ -369,12 +375,6 @@ function Layers() {
         posSliced.length,
         posSliced.length % 9
       );
-      // // close ring
-      // position.push(
-      //   pixelData.extent.xmin,
-      //   pixelData.extent.ymin,
-      //   zValues[0] - 1200
-      // );
 
       const g = new Graphic({
         geometry: new Mesh({
