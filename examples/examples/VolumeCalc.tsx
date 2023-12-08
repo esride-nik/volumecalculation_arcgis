@@ -272,8 +272,8 @@ function Layers() {
         const mapPoint = event.mapPoint;
 
         // TODO: more that 158 return empty pixelBlock! :/
-        const pixelBlockWidth = 158;
-        const pixelBlockHeight = 158;
+        const pixelBlockWidth = 20;
+        const pixelBlockHeight = 20;
         const requestExtent = new Extent({
           xmin: mapPoint.x,
           ymin: mapPoint.y,
@@ -289,22 +289,13 @@ function Layers() {
         //   ymax: sceneView.extent.ymax,
         //   spatialReference: { wkid: 102_100 },
         // });
-        console.log('requestExtent', requestExtent);
-
-        // const pixelData = (await (
-        //   imgLayer as unknown as ImageryTileLayer
-        // ).fetchPixels(
-        //   sceneView.extent,
-        //   sceneView.width,
-        //   sceneView.height
-        // )) as __esri.PixelData;
 
         const pixelData = (await (
           imgLayer as unknown as ImageryTileLayer
         ).fetchPixels(
           requestExtent,
-          pixelBlockWidth,
-          pixelBlockHeight
+          requestExtent.xmax - requestExtent.xmin,
+          requestExtent.ymax - requestExtent.ymin
         )) as __esri.PixelData;
 
         const resolutionX = requestExtent.width / pixelData.pixelBlock.width;
