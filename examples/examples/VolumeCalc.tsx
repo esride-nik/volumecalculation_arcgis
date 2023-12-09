@@ -343,18 +343,35 @@ function Layers() {
 
            1.1   1.3   1.5 ...
     */
-    const getTriangle = (allPoints: number[][][], index: number): number[] =>
-      index % 2 == 0
-        ? [
-            ...allPoints[index][index],
-            ...allPoints[index][index + 2],
-            ...allPoints[index + 1][index + 1],
-          ]
-        : [
-            ...allPoints[index + 1][index + 1],
-            ...allPoints[index + 1][index + 2],
-            ...allPoints[index - 1][index + 1],
-          ];
+    const getTriangle = (allPoints: number[][][], index: number): number[] => {
+      const yIndex = index % 2;
+      const triangle =
+        yIndex == 0
+          ? [
+              ...allPoints[yIndex][index],
+              ...allPoints[yIndex][index + 2],
+              ...allPoints[yIndex + 1][index + 1],
+            ]
+          : [
+              ...allPoints[yIndex][index],
+              ...allPoints[yIndex][index + 2],
+              ...allPoints[yIndex - 1][index + 1],
+            ];
+      const indices =
+        yIndex == 0
+          ? [
+              `${yIndex}.${index}`,
+              `${yIndex}.${index + 2}`,
+              `${yIndex + 1}.${index + 1}`,
+            ]
+          : [
+              `${yIndex}.${index}`,
+              `${yIndex}.${index + 2}`,
+              `${yIndex - 1}.${index + 1}`,
+            ];
+      console.log(index, indices.join(', '));
+      return triangle;
+    };
 
     const create3dMesh = (
       pixelData: __esri.PixelData,
@@ -385,7 +402,7 @@ function Layers() {
         const t = getTriangle(allPoints, i);
         position.push(...t);
       }
-      console.log('position', allPoints);
+      // console.log('position', allPoints);
 
       // allPoints.forEach((allPointsY: number[][], y: number) => {
       //   allPointsY.forEach((allPointsYX: number[], x: number) => {
@@ -406,7 +423,7 @@ function Layers() {
       //     );
       //   });
 
-      console.log('position', position, position.length, position.length % 9);
+      // console.log('position', position, position.length, position.length % 9);
       const posSliced = position.slice(
         0,
         position.length - (position.length % 9)
