@@ -10,6 +10,7 @@ import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
 import ImageryTileLayer from '@arcgis/core/layers/ImageryTileLayer';
 import SceneView from '@arcgis/core/views/SceneView';
 import Expand from '@arcgis/core/widgets/Expand';
+import Home from '@arcgis/core/widgets/Home';
 import LayerList from '@arcgis/core/widgets/LayerList';
 import Legend from '@arcgis/core/widgets/Legend';
 import Search from '@arcgis/core/widgets/Search';
@@ -56,6 +57,14 @@ export default function VolumeCalc() {
     [sceneView]
   );
 
+  const home = useMemo(
+    () =>
+      new Home({
+        view: sceneView,
+      }),
+    [sceneView]
+  );
+
   const clippingAdd = 100;
   const extentAdd = 1000;
   return (
@@ -67,12 +76,13 @@ export default function VolumeCalc() {
         //   navigationConstraint: 'none'
         // },
       }}
+      camera={{ tilt: 40 }}
       extent={{
         spatialReference: { latestWkid: 3857, wkid: 102100 },
         xmin: -4_891_786.441_670_591 - extentAdd,
-        ymin: -2_307_257.926_811_594 - extentAdd,
+        ymin: -2_307_257.926_811_594,
         xmax: -4_891_427.934_010_591 + extentAdd,
-        ymax: -2_306_963.309_761_594_5 + extentAdd,
+        ymax: -2_306_963.309_761_594_5 + extentAdd * 2,
       }}
       style={{ height: '100vh' }}
       // eventHandlers={{
@@ -102,6 +112,10 @@ export default function VolumeCalc() {
 
       <ArcUI position="bottom-right">
         <ArcWidget widget={legend} />
+      </ArcUI>
+
+      <ArcUI position="bottom-right">
+        <ArcWidget widget={home} />
       </ArcUI>
     </ArcSceneView>
   );
@@ -255,19 +269,22 @@ function Layers() {
       const positionAll: number[] = [];
 
       const allPoints: number[][][] = [];
-      const zAdd = 0;
+      const zAdd = -1200;
+
+      // imgLayerRasterSizeX
+      // imgLayerRasterSizeY
 
       // iterate through zValues and put them into rows and columns, according to pixelBlock size
       zValues.forEach((zValue: number, index: number): void => {
         const posY = Math.floor(index / pixelData.pixelBlock.height);
+
+        const posX = Math.floor(index % pixelData.pixelBlock.height);
         if (!allPoints[posY]) allPoints[posY] = [];
 
-        // const posX = index % pixelData.pixelBlock.width;
-        const posX = Math.floor(index % pixelData.pixelBlock.height);
         allPoints[posY][posX] = [
           pixelData.extent.xmin + posX,
           pixelData.extent.ymin + posY,
-          zValue + zAdd,
+          zValue + zAdd > -1000 ? zValue + zAdd : 0, // pseudo correction of invalid values
         ];
       });
 
@@ -320,27 +337,24 @@ function Layers() {
 
         const mapPoint = event.mapPoint;
 
-        // TODO: more that 158 return empty pixelBlock! :/
-        // const pixelBlockWidth = 150;
-        // const pixelBlockHeight = 150;
-        // const requestExtent = new Extent({
-        //   xmin: mapPoint.x,
-        //   ymin: mapPoint.y,
-        //   xmax: mapPoint.x + pixelBlockWidth,
-        //   ymax: mapPoint.y + pixelBlockHeight,
-        //   spatialReference: { wkid: 102_100 },
-        // });
-
+        // // TODO: more that 158 return empty pixelBlock! :/
+        const pixelBlockWidth = 150;
+        const pixelBlockHeight = 150;
         const requestExtent = new Extent({
-          xmin: imgLayerExtent.xmin,
-          ymin: imgLayerExtent.ymin,
-          xmax: imgLayerExtent.xmax,
-          ymax: imgLayerExtent.ymax,
+          xmin: mapPoint.x,
+          ymin: mapPoint.y,
+          xmax: mapPoint.x + pixelBlockWidth,
+          ymax: mapPoint.y + pixelBlockHeight,
           spatialReference: { wkid: 102_100 },
         });
 
-        // imgLayerRasterSizeX
-        // imgLayerRasterSizeY
+        // const requestExtent = new Extent({
+        //   xmin: imgLayerExtent.xmin+120,
+        //   ymin: imgLayerExtent.ymin+120,
+        //   xmax: imgLayerExtent.xmax-150,
+        //   ymax: imgLayerExtent.ymax-150,
+        //   spatialReference: { wkid: 102_100 },
+        // });
 
         const pixelData = (await (
           imgLayer as unknown as ImageryTileLayer
