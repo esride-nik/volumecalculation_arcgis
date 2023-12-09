@@ -337,6 +337,25 @@ function Layers() {
       return [graphic];
     };
 
+    // build triangles from allPoints: [0.0, 0.2, 1.1] [1.1, 1.3, 0.2] ...
+    /*
+        0.0   0.2   0.4 ...
+
+           1.1   1.3   1.5 ...
+    */
+    const getTriangle = (allPoints: number[][][], index: number): number[] =>
+      index % 2 == 0
+        ? [
+            ...allPoints[index][index],
+            ...allPoints[index][index + 2],
+            ...allPoints[index + 1][index + 1],
+          ]
+        : [
+            ...allPoints[index + 1][index + 1],
+            ...allPoints[index + 1][index + 2],
+            ...allPoints[index - 1][index + 1],
+          ];
+
     const create3dMesh = (
       pixelData: __esri.PixelData,
       zValues: number[],
@@ -345,13 +364,6 @@ function Layers() {
       resolutionY: number
     ) => {
       const position: number[] = [];
-
-      // TODO: bring these inorder: triangles should consist of: [1.1, 1.3, 2.2] [2.2, 2.4, 1.3] ...
-      /*
-        1.1   1.3   1.5 ...
-
-           2.2   2.4   2.6 ...
-      */
 
       const allPoints: number[][][] = [];
       const zAdd = -1200;
@@ -367,31 +379,44 @@ function Layers() {
           zValue + zAdd,
         ];
       });
-      console.log('allPoints', allPoints);
+      // console.log('allPoints', allPoints);
 
-      // eslint-disable-next-line unicorn/no-array-for-each
-      zValues
-        // eslint-disable-next-line unicorn/no-array-for-each
-        .forEach((zValue: number, index: number): void => {
-          const posX = index % pixelData.pixelBlock.width;
-          const posY = Math.floor(index / pixelData.pixelBlock.height);
-          position.push(
-            pixelData.extent.xmin + posX,
-            pixelData.extent.ymin + posY,
-            zValue - 1200
-          );
-        });
+      for (let i = 0; i < allPoints.length - 2; i++) {
+        const t = getTriangle(allPoints, i);
+        position.push(...t);
+      }
+      console.log('position', allPoints);
+
+      // allPoints.forEach((allPointsY: number[][], y: number) => {
+      //   allPointsY.forEach((allPointsYX: number[], x: number) => {
+      //     console.log('allPointsYX', y, x);
+      //   });
+      // });
+
+      // // eslint-disable-next-line unicorn/no-array-for-each
+      // zValues
+      //   // eslint-disable-next-line unicorn/no-array-for-each
+      //   .forEach((zValue: number, index: number): void => {
+      //     const posX = index % pixelData.pixelBlock.width;
+      //     const posY = Math.floor(index / pixelData.pixelBlock.height);
+      //     position.push(
+      //       pixelData.extent.xmin + posX,
+      //       pixelData.extent.ymin + posY,
+      //       zValue - 1200
+      //     );
+      //   });
+
       console.log('position', position, position.length, position.length % 9);
       const posSliced = position.slice(
         0,
         position.length - (position.length % 9)
       );
-      console.log(
-        'posSliced',
-        posSliced,
-        posSliced.length,
-        posSliced.length % 9
-      );
+      // console.log(
+      //   'posSliced',
+      //   posSliced,
+      //   posSliced.length,
+      //   posSliced.length % 9
+      // );
 
       const g = new Graphic({
         geometry: new Mesh({
