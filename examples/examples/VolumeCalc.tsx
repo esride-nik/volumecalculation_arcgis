@@ -180,49 +180,54 @@ function Layers() {
       yIndex: number,
       xIndex: number
     ): number[] => {
-      // console.log(
-      //   'getTriangle',
-      //   `${yIndex}/${allPoints.length}`,
-      //   `${xIndex}/${allPoints[0].length}`
-      // );
-      // const yIndex = index % 2;
-
       const triangle =
         yIndex % 2 == 0
+          ? xIndex % 2 == 0
+            ? [
+                ...allPoints[yIndex][xIndex],
+                ...allPoints[yIndex][xIndex + 2],
+                ...allPoints[yIndex + 1][xIndex + 1],
+              ]
+            : [
+                ...allPoints[yIndex][xIndex + 1],
+                ...allPoints[yIndex + 1][xIndex],
+                ...allPoints[yIndex + 1][xIndex + 2],
+              ]
+          : xIndex % 2 == 0
           ? [
-              ...allPoints[yIndex][xIndex],
-              ...allPoints[yIndex][xIndex + 2],
-              ...allPoints[yIndex + 1][xIndex + 1],
-            ]
-          : [
               ...allPoints[yIndex][xIndex + 1],
               ...allPoints[yIndex + 1][xIndex],
               ...allPoints[yIndex + 1][xIndex + 2],
-            ];
-
-      // const triangle =
-      //   yIndex % 2 == 0
-      //     ? [
-      //         ...allPoints[yIndex][xIndex],
-      //         ...allPoints[yIndex][xIndex + 2],
-      //         ...allPoints[yIndex + 1][xIndex + 1],
-      //       ]
-      //     : [
-      //         ...allPoints[yIndex][xIndex],
-      //         ...allPoints[yIndex][xIndex + 2],
-      //         ...allPoints[yIndex - 1][xIndex + 1],
-      //       ];
-      const indices =
-        yIndex % 2 == 0
-          ? [
-              `${yIndex}.${xIndex}`,
-              `${yIndex}.${xIndex + 2}`,
-              `${yIndex + 1}.${xIndex + 1}`,
             ]
           : [
-              `${yIndex}.${xIndex}`,
-              `${yIndex}.${xIndex + 2}`,
-              `${yIndex - 1}.${xIndex + 1}`,
+              ...allPoints[yIndex][xIndex],
+              ...allPoints[yIndex][xIndex + 2],
+              ...allPoints[yIndex + 1][xIndex + 1],
+            ];
+
+      const indices =
+        yIndex % 2 == 0
+          ? xIndex % 2 == 0
+            ? [
+                `${yIndex}.${xIndex}`,
+                `${yIndex}.${xIndex + 2}`,
+                `${yIndex + 1}.${xIndex + 1}`,
+              ]
+            : [
+                `${yIndex}.${xIndex + 1}`,
+                `${yIndex + 1}.${xIndex}`,
+                `${yIndex + 1}.${xIndex + 2}`,
+              ]
+          : xIndex % 2 == 0
+          ? [
+              `${yIndex}.${xIndex + 1}`,
+              `${yIndex + 1}.${xIndex}`,
+              `${yIndex + 1}.${xIndex + 2}`,
+            ]
+          : [
+              `${yIndex}.${xIndex + 1}`,
+              `${yIndex + 1}.${xIndex}`,
+              `${yIndex + 1}.${xIndex + 2}`,
             ];
       console.log(xIndex, indices.join(', '));
       return triangle;
@@ -254,7 +259,7 @@ function Layers() {
       // console.log('allPoints', allPoints);
 
       for (let y = 0; y < allPoints.length - 2; y++) {
-        for (let x = 0; x < allPoints[0].length - 2; x += 2) {
+        for (let x = 0; x < allPoints[0].length - 2; x++) {
           const t = getTriangle(allPoints, y, x);
           position.push(...t);
         }
