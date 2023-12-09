@@ -70,11 +70,8 @@ export default function VolumeCalc() {
   return (
     <ArcSceneView
       map={{
-        basemap: 'streets',
+        basemap: 'streets-vector',
         ground: 'world-elevation',
-        // ground: {
-        //   navigationConstraint: 'none'
-        // },
       }}
       camera={{ tilt: 40 }}
       extent={{
@@ -85,11 +82,6 @@ export default function VolumeCalc() {
         ymax: -2_306_963.309_761_594_5 + extentAdd * 2,
       }}
       style={{ height: '100vh' }}
-      // eventHandlers={{
-      //   click: (e) => {
-      //     console.log('click event', e.mapPoint);
-      //   },
-      // }}
       viewingMode="local"
       clippingArea={{
         spatialReference: { latestWkid: 3857, wkid: 102100 },
@@ -194,7 +186,8 @@ function Layers() {
     const getLowPolyTriangle = (
       allPoints: number[][][],
       yIndex: number,
-      xIndex: number
+      xIndex: number,
+      debug = false
     ): number[] => {
       /*
       We have continuous rows and columns of values, but as we're building triangles, we need to skip every 2nd value, offset from each other in consecutive rows.
@@ -231,38 +224,41 @@ function Layers() {
               ...allPoints[yIndex + 1][xIndex + 1],
             ];
 
-      // const indices =
-      //   yIndex % 2 == 0
-      //     ? xIndex % 2 == 0
-      //       ? [
-      //           `${yIndex}.${xIndex}`,
-      //           `${yIndex}.${xIndex + 2}`,
-      //           `${yIndex + 1}.${xIndex + 1}`,
-      //         ]
-      //       : [
-      //           `${yIndex}.${xIndex + 1}`,
-      //           `${yIndex + 1}.${xIndex}`,
-      //           `${yIndex + 1}.${xIndex + 2}`,
-      //         ]
-      //     : xIndex % 2 == 0
-      //     ? [
-      //         `${yIndex}.${xIndex + 1}`,
-      //         `${yIndex + 1}.${xIndex}`,
-      //         `${yIndex + 1}.${xIndex + 2}`,
-      //       ]
-      //     : [
-      //         `${yIndex}.${xIndex + 1}`,
-      //         `${yIndex + 1}.${xIndex}`,
-      //         `${yIndex + 1}.${xIndex + 2}`,
-      //       ];
-      // console.log(xIndex, indices.join(', '));
+      if (debug) {
+        const indices =
+          yIndex % 2 == 0
+            ? xIndex % 2 == 0
+              ? [
+                  `${yIndex}.${xIndex}`,
+                  `${yIndex}.${xIndex + 2}`,
+                  `${yIndex + 1}.${xIndex + 1}`,
+                ]
+              : [
+                  `${yIndex}.${xIndex + 1}`,
+                  `${yIndex + 1}.${xIndex}`,
+                  `${yIndex + 1}.${xIndex + 2}`,
+                ]
+            : xIndex % 2 == 0
+            ? [
+                `${yIndex}.${xIndex + 1}`,
+                `${yIndex + 1}.${xIndex}`,
+                `${yIndex + 1}.${xIndex + 2}`,
+              ]
+            : [
+                `${yIndex}.${xIndex + 1}`,
+                `${yIndex + 1}.${xIndex}`,
+                `${yIndex + 1}.${xIndex + 2}`,
+              ];
+        console.log(xIndex, indices.join(', '));
+      }
       return triangle;
     };
 
     const getTriangle = (
       allPoints: number[][][],
       yIndex: number,
-      xIndex: number
+      xIndex: number,
+      debug = false
     ): number[] => {
       /*
       We have continuous rows and columns of values, but as we're building triangles, we need to skip every 2nd value, offset from each other in consecutive rows.
@@ -284,22 +280,25 @@ function Layers() {
         ...allPoints[yIndex + 1][xIndex + 1],
       ];
 
-      const indices = [
-        `${yIndex}.${xIndex}`,
-        `${yIndex}.${xIndex + 1}`,
-        `${yIndex + 1}.${xIndex}`,
-        `${yIndex}.${xIndex + 1}`,
-        `${yIndex + 1}.${xIndex}`,
-        `${yIndex + 1}.${xIndex + 1}`,
-      ];
-      console.log(xIndex, indices.join(', '));
+      if (debug) {
+        const indices = [
+          `${yIndex}.${xIndex}`,
+          `${yIndex}.${xIndex + 1}`,
+          `${yIndex + 1}.${xIndex}`,
+          `${yIndex}.${xIndex + 1}`,
+          `${yIndex + 1}.${xIndex}`,
+          `${yIndex + 1}.${xIndex + 1}`,
+        ];
+        console.log(xIndex, indices.join(', '));
+      }
       return triangle;
     };
 
     const create3dMesh = (
       pixelData: __esri.PixelData,
       zValues: number[],
-      symbolColor: string | __esri.Color
+      symbolColor: string | __esri.Color,
+      lowPoly = false
     ) => {
       const positionAll: number[] = [];
 
@@ -326,8 +325,9 @@ function Layers() {
       // iterate through rows and columns and get triangles for mesh
       for (let y = 0; y < allPoints.length - 3; y++) {
         for (let x = 0; x < allPoints[0].length - 3; x++) {
-          // const t = getLowPolyTriangle(allPoints, y, x);
-          const t = getTriangle(allPoints, y, x);
+          const t = lowPoly
+            ? getLowPolyTriangle(allPoints, y, x)
+            : getTriangle(allPoints, y, x);
           positionAll.push(...t);
         }
       }
