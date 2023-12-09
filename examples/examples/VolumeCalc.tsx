@@ -277,12 +277,22 @@ function Layers() {
       */
       const triangle = [
         ...allPoints[yIndex][xIndex],
-        ...allPoints[yIndex][xIndex + 2],
+        ...allPoints[yIndex][xIndex + 1],
         ...allPoints[yIndex + 1][xIndex],
         ...allPoints[yIndex][xIndex + 1],
-        ...allPoints[yIndex][xIndex + 2],
+        ...allPoints[yIndex + 1][xIndex],
         ...allPoints[yIndex + 1][xIndex + 1],
       ];
+
+      const indices = [
+        `${yIndex}.${xIndex}`,
+        `${yIndex}.${xIndex + 1}`,
+        `${yIndex + 1}.${xIndex}`,
+        `${yIndex}.${xIndex + 1}`,
+        `${yIndex + 1}.${xIndex}`,
+        `${yIndex + 1}.${xIndex + 1}`,
+      ];
+      console.log(xIndex, indices.join(', '));
       return triangle;
     };
 
