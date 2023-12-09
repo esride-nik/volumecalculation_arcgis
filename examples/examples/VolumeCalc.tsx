@@ -3,7 +3,6 @@
 import * as promiseUtils from '@arcgis/core/core/promiseUtils';
 import Extent from '@arcgis/core/geometry/Extent';
 import Mesh from '@arcgis/core/geometry/Mesh';
-import Polygon from '@arcgis/core/geometry/Polygon';
 import Graphic from '@arcgis/core/Graphic';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
@@ -70,7 +69,8 @@ export default function VolumeCalc() {
   return (
     <ArcSceneView
       map={{
-        basemap: 'streets-vector',
+        // TODO: using 'streets-vector' causes issues => graphicsLayer is undefined when trying to draw mesh.. idk.. something about the ViewCreated event being fired earlier..?
+        basemap: 'topo-vector',
         ground: 'world-elevation',
       }}
       camera={{ tilt: 40 }}
