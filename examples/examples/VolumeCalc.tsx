@@ -343,33 +343,42 @@ function Layers() {
 
            1.1   1.3   1.5 ...
     */
-    const getTriangle = (allPoints: number[][][], index: number): number[] => {
-      const yIndex = index % 2;
+    const getTriangle = (
+      allPoints: number[][][],
+      yIndex: number,
+      xIndex: number
+    ): number[] => {
+      // console.log(
+      //   'getTriangle',
+      //   `${yIndex}/${allPoints.length}`,
+      //   `${xIndex}/${allPoints[0].length}`
+      // );
+      // const yIndex = index % 2;
       const triangle =
         yIndex == 0
           ? [
-              ...allPoints[yIndex][index],
-              ...allPoints[yIndex][index + 2],
-              ...allPoints[yIndex + 1][index + 1],
+              ...allPoints[yIndex][xIndex],
+              ...allPoints[yIndex][xIndex + 2],
+              ...allPoints[yIndex + 1][xIndex + 1],
             ]
           : [
-              ...allPoints[yIndex][index],
-              ...allPoints[yIndex][index + 2],
-              ...allPoints[yIndex - 1][index + 1],
+              ...allPoints[yIndex][xIndex],
+              ...allPoints[yIndex][xIndex + 2],
+              ...allPoints[yIndex - 1][xIndex + 1],
             ];
       const indices =
         yIndex == 0
           ? [
-              `${yIndex}.${index}`,
-              `${yIndex}.${index + 2}`,
-              `${yIndex + 1}.${index + 1}`,
+              `${yIndex}.${xIndex}`,
+              `${yIndex}.${xIndex + 2}`,
+              `${yIndex + 1}.${xIndex + 1}`,
             ]
           : [
-              `${yIndex}.${index}`,
-              `${yIndex}.${index + 2}`,
-              `${yIndex - 1}.${index + 1}`,
+              `${yIndex}.${xIndex}`,
+              `${yIndex}.${xIndex + 2}`,
+              `${yIndex - 1}.${xIndex + 1}`,
             ];
-      console.log(index, indices.join(', '));
+      console.log(xIndex, indices.join(', '));
       return triangle;
     };
 
@@ -398,17 +407,20 @@ function Layers() {
       });
       // console.log('allPoints', allPoints);
 
-      for (let i = 0; i < allPoints.length - 2; i++) {
-        const t = getTriangle(allPoints, i);
-        position.push(...t);
-      }
+      // for (let i = 0; i < allPoints.length - 2; i++) {
+      //   const t = getTriangle(allPoints, i);
+      //   position.push(...t);
+      // }
       // console.log('position', allPoints);
 
-      // allPoints.forEach((allPointsY: number[][], y: number) => {
-      //   allPointsY.forEach((allPointsYX: number[], x: number) => {
-      //     console.log('allPointsYX', y, x);
-      //   });
-      // });
+      allPoints.forEach((allPointsY: number[][], y: number) => {
+        if (y >= allPoints.length - 2) return;
+        allPointsY.forEach((allPointsYX: number[], x: number) => {
+          if (x >= allPointsY.length - 2) return;
+          const t = getTriangle(allPoints, y, x);
+          position.push(...t);
+        });
+      });
 
       // // eslint-disable-next-line unicorn/no-array-for-each
       // zValues
