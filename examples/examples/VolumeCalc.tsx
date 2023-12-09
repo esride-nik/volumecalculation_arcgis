@@ -108,6 +108,8 @@ export default function VolumeCalc() {
 function Layers() {
   const sceneView = useSceneView();
   let imgLayer: ImageryLayer;
+  let imgLayerRasterSizeX: number;
+  let imgLayerRasterSizeY: number;
   let volGraphicsLayer: GraphicsLayer;
 
   const onVolGraphicsViewCreated = (e: any) => {
@@ -136,6 +138,9 @@ function Layers() {
       imgLayer?.rasterInfo?.pixelSize?.x,
       imgLayer?.rasterInfo?.pixelSize?.y
     );
+    
+    imgLayerRasterSizeX = imgLayer?.rasterInfo?.pixelSize?.x;
+    imgLayerRasterSizeY = imgLayer?.rasterInfo?.pixelSize?.y;
 
     imgLayer.renderer = {
       computeGamma: false,
