@@ -13,46 +13,6 @@ const Examples = [
     component: lazy(() => import('./examples/VolumeCalc')),
     icon: 'layer-graphics',
   },
-  {
-    name: 'ReactiveUtils',
-    component: lazy(() => import('./examples/ReactiveUtils')),
-    icon: 'refresh',
-  },
-  {
-    name: 'Daylight Widget',
-    component: lazy(() => import('./examples/DaylightWidget')),
-    icon: 'brightness',
-  },
-  {
-    name: 'Intro to Layers',
-    component: lazy(() => import('./examples/IntroToLayers')),
-    icon: 'layers',
-  },
-  {
-    name: 'Sketch Widget',
-    component: lazy(() => import('./examples/SketchWidget')),
-    icon: 'pencil',
-  },
-  {
-    name: 'Client-Side Stream Layer',
-    component: lazy(() => import('./examples/ClientSideStreamLayer')),
-    icon: 'layer-graphics',
-  },
-  {
-    name: 'Basemap Picker',
-    component: lazy(() => import('./examples/BasemapPicker')),
-    icon: 'basemap',
-  },
-  {
-    name: 'MultiView',
-    component: lazy(() => import('./examples/MultiView')),
-    icon: '3d-glasses',
-  },
-  {
-    name: 'Simple',
-    component: lazy(() => import('./examples/Simple')),
-    icon: 'map',
-  },
 ];
 
 export function App() {
@@ -70,9 +30,9 @@ export function App() {
   return (
     <div>
       <CalciteShell className="calcite-mode-dark">
-        <CalciteShellPanel slot="panel-start" collapsed>
+        {/* <CalciteShellPanel slot="panel-start" collapsed>
           {actions}
-        </CalciteShellPanel>
+        </CalciteShellPanel> */}
 
         <Suspense
           fallback={
