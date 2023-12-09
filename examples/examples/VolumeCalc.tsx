@@ -165,11 +165,15 @@ function Layers() {
       });
     });
 
-    // build triangles from allPoints: [0.0, 0.2, 1.1] [1.1, 1.3, 0.2] ...
     /*
-        0.0   0.2   0.4 ...
+    We have continuous rows and columns of values, but as we're building triangles, we need to skip every 2nd value, offset from each other in consecutive rows.
+        0.0   0.2   0.4   0.6   0.8 ...
+           1.1   1.3   1.5   1.7...
+        2.0   2.2   2.4 ...
+           3.1   3.3   3.5 ...
 
-           1.1   1.3   1.5 ...
+    What we're building looks like:
+    [0.0, 0.2, 1.1] [1.1, 1.3, 0.2]
     */
     const getTriangle = (
       allPoints: number[][][],
@@ -182,8 +186,9 @@ function Layers() {
       //   `${xIndex}/${allPoints[0].length}`
       // );
       // const yIndex = index % 2;
+
       const triangle =
-        yIndex == 0
+        yIndex % 2 == 0
           ? [
               ...allPoints[yIndex][xIndex],
               ...allPoints[yIndex][xIndex + 2],
@@ -195,7 +200,7 @@ function Layers() {
               ...allPoints[yIndex - 1][xIndex + 1],
             ];
       const indices =
-        yIndex == 0
+        yIndex % 2 == 0
           ? [
               `${yIndex}.${xIndex}`,
               `${yIndex}.${xIndex + 2}`,
@@ -235,20 +240,22 @@ function Layers() {
       });
       // console.log('allPoints', allPoints);
 
-      // for (let i = 0; i < allPoints.length - 2; i++) {
-      //   const t = getTriangle(allPoints, i);
-      //   position.push(...t);
-      // }
-      // console.log('position', allPoints);
-
-      allPoints.forEach((allPointsY: number[][], y: number) => {
-        if (y >= allPoints.length - 2) return;
-        allPointsY.forEach((allPointsYX: number[], x: number) => {
-          if (x >= allPointsY.length - 2) return;
+      for (let y = 0; y < allPoints.length - 2; y++) {
+        for (let x = 0; x < allPoints[0].length - 2; x += 2) {
           const t = getTriangle(allPoints, y, x);
           position.push(...t);
-        });
-      });
+        }
+      }
+      // console.log('position', allPoints);
+
+      // allPoints.forEach((allPointsY: number[][], y: number) => {
+      //   if (y >= allPoints.length - 2) return;
+      //   allPointsY.forEach((allPointsYX: number[], x: number) => {
+      //     if (x >= allPointsY.length - 2) return;
+      //     const t = getTriangle(allPoints, y, x);
+      //     position.push(...t);
+      //   });
+      // });
 
       // // eslint-disable-next-line unicorn/no-array-for-each
       // zValues
