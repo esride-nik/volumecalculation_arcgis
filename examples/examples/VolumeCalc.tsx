@@ -205,31 +205,31 @@ function Layers() {
               ...allPoints[yIndex + 1][xIndex + 1],
             ];
 
-      const indices =
-        yIndex % 2 == 0
-          ? xIndex % 2 == 0
-            ? [
-                `${yIndex}.${xIndex}`,
-                `${yIndex}.${xIndex + 2}`,
-                `${yIndex + 1}.${xIndex + 1}`,
-              ]
-            : [
-                `${yIndex}.${xIndex + 1}`,
-                `${yIndex + 1}.${xIndex}`,
-                `${yIndex + 1}.${xIndex + 2}`,
-              ]
-          : xIndex % 2 == 0
-          ? [
-              `${yIndex}.${xIndex + 1}`,
-              `${yIndex + 1}.${xIndex}`,
-              `${yIndex + 1}.${xIndex + 2}`,
-            ]
-          : [
-              `${yIndex}.${xIndex + 1}`,
-              `${yIndex + 1}.${xIndex}`,
-              `${yIndex + 1}.${xIndex + 2}`,
-            ];
-      console.log(xIndex, indices.join(', '));
+      // const indices =
+      //   yIndex % 2 == 0
+      //     ? xIndex % 2 == 0
+      //       ? [
+      //           `${yIndex}.${xIndex}`,
+      //           `${yIndex}.${xIndex + 2}`,
+      //           `${yIndex + 1}.${xIndex + 1}`,
+      //         ]
+      //       : [
+      //           `${yIndex}.${xIndex + 1}`,
+      //           `${yIndex + 1}.${xIndex}`,
+      //           `${yIndex + 1}.${xIndex + 2}`,
+      //         ]
+      //     : xIndex % 2 == 0
+      //     ? [
+      //         `${yIndex}.${xIndex + 1}`,
+      //         `${yIndex + 1}.${xIndex}`,
+      //         `${yIndex + 1}.${xIndex + 2}`,
+      //       ]
+      //     : [
+      //         `${yIndex}.${xIndex + 1}`,
+      //         `${yIndex + 1}.${xIndex}`,
+      //         `${yIndex + 1}.${xIndex + 2}`,
+      //       ];
+      // console.log(xIndex, indices.join(', '));
       return triangle;
     };
 
@@ -240,11 +240,12 @@ function Layers() {
       resolutionX: number,
       resolutionY: number
     ) => {
-      const position: number[] = [];
+      const positionAll: number[] = [];
 
       const allPoints: number[][][] = [];
-      const zAdd = -1200;
+      const zAdd = 0;
 
+      // iterate through zValues and put them into rows and columns, according to pixelBlock size
       zValues.forEach((zValue: number, index: number): void => {
         const posY = Math.floor(index / pixelData.pixelBlock.height);
         if (!allPoints[posY]) allPoints[posY] = [];
@@ -256,55 +257,27 @@ function Layers() {
           zValue + zAdd,
         ];
       });
-      // console.log('allPoints', allPoints);
 
+      // iterate through rows and columns and get triangles for mesh
       for (let y = 0; y < allPoints.length - 2; y++) {
         for (let x = 0; x < allPoints[0].length - 2; x++) {
           const t = getTriangle(allPoints, y, x);
-          position.push(...t);
+          positionAll.push(...t);
         }
       }
-      // console.log('position', allPoints);
 
-      // allPoints.forEach((allPointsY: number[][], y: number) => {
-      //   if (y >= allPoints.length - 2) return;
-      //   allPointsY.forEach((allPointsYX: number[], x: number) => {
-      //     if (x >= allPointsY.length - 2) return;
-      //     const t = getTriangle(allPoints, y, x);
-      //     position.push(...t);
-      //   });
-      // });
-
-      // // eslint-disable-next-line unicorn/no-array-for-each
-      // zValues
-      //   // eslint-disable-next-line unicorn/no-array-for-each
-      //   .forEach((zValue: number, index: number): void => {
-      //     const posX = index % pixelData.pixelBlock.width;
-      //     const posY = Math.floor(index / pixelData.pixelBlock.height);
-      //     position.push(
-      //       pixelData.extent.xmin + posX,
-      //       pixelData.extent.ymin + posY,
-      //       zValue - 1200
-      //     );
-      //   });
-
-      // console.log('position', position, position.length, position.length % 9);
-      const posSliced = position.slice(
+      // safety precautions: mesh positions have to be multiplier of 9
+      const position = positionAll.slice(
         0,
-        position.length - (position.length % 9)
+        positionAll.length - (positionAll.length % 9)
       );
-      // console.log(
-      //   'posSliced',
-      //   posSliced,
-      //   posSliced.length,
-      //   posSliced.length % 9
-      // );
 
+      // create mesh graphic
       const g = new Graphic({
         geometry: new Mesh({
           spatialReference: pixelData.extent.spatialReference,
           vertexAttributes: {
-            position: posSliced,
+            position,
           },
         }),
         symbol: {
@@ -335,8 +308,8 @@ function Layers() {
         const mapPoint = event.mapPoint;
 
         // TODO: more that 158 return empty pixelBlock! :/
-        const pixelBlockWidth = 20;
-        const pixelBlockHeight = 20;
+        const pixelBlockWidth = 150;
+        const pixelBlockHeight = 150;
         const requestExtent = new Extent({
           xmin: mapPoint.x,
           ymin: mapPoint.y,
