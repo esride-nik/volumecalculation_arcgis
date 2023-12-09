@@ -56,7 +56,8 @@ export default function VolumeCalc() {
     [sceneView]
   );
 
-  const clippingAdd = 1000;
+  const clippingAdd = 100;
+  const extentAdd = 1000;
   return (
     <ArcSceneView
       map={{
@@ -66,13 +67,13 @@ export default function VolumeCalc() {
         //   navigationConstraint: 'none'
         // },
       }}
-      // extent={{
-      //   spatialReference: { wkid: 102_100 },
-      //   xmin: -4_891_928.102_194_494,
-      //   ymin: -2_307_356.023_380_755_4,
-      //   xmax: -4_891_286.273_486_689,
-      //   ymax: -2_306_865.213_192_433,
-      // }}
+      extent={{
+        spatialReference: { latestWkid: 3857, wkid: 102100 },
+        xmin: -4_891_786.441_670_591 - extentAdd,
+        ymin: -2_307_257.926_811_594 - extentAdd,
+        xmax: -4_891_427.934_010_591 + extentAdd,
+        ymax: -2_306_963.309_761_594_5 + extentAdd,
+      }}
       style={{ height: '100vh' }}
       // eventHandlers={{
       //   click: (e) => {
