@@ -195,10 +195,23 @@ function Layers() {
               ...allPoints[yIndex + 1][xIndex + 1],
             ]
           : [
-              ...allPoints[yIndex][xIndex],
-              ...allPoints[yIndex][xIndex + 2],
-              ...allPoints[yIndex - 1][xIndex + 1],
+              ...allPoints[yIndex][xIndex + 1],
+              ...allPoints[yIndex + 1][xIndex],
+              ...allPoints[yIndex + 1][xIndex + 2],
             ];
+
+      // const triangle =
+      //   yIndex % 2 == 0
+      //     ? [
+      //         ...allPoints[yIndex][xIndex],
+      //         ...allPoints[yIndex][xIndex + 2],
+      //         ...allPoints[yIndex + 1][xIndex + 1],
+      //       ]
+      //     : [
+      //         ...allPoints[yIndex][xIndex],
+      //         ...allPoints[yIndex][xIndex + 2],
+      //         ...allPoints[yIndex - 1][xIndex + 1],
+      //       ];
       const indices =
         yIndex % 2 == 0
           ? [
