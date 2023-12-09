@@ -56,6 +56,7 @@ export default function VolumeCalc() {
     [sceneView]
   );
 
+  const clippingAdd = 1000;
   return (
     <ArcSceneView
       map={{
@@ -78,14 +79,14 @@ export default function VolumeCalc() {
       //     console.log('click event', e.mapPoint);
       //   },
       // }}
-      // viewingMode="local"
-      // clippingArea={{
-      //   spatialReference: { wkid: 102_100 },
-      //   xmin: -4_891_786.441_670_591,
-      //   ymin: -2_307_257.926_811_594,
-      //   xmax: -4_891_427.934_010_591,
-      //   ymax: -2_306_963.309_761_594_5,
-      // }}
+      viewingMode="local"
+      clippingArea={{
+        spatialReference: { latestWkid: 3857, wkid: 102100 },
+        xmin: -4_891_786.441_670_591 - clippingAdd,
+        ymin: -2_307_257.926_811_594 - clippingAdd,
+        xmax: -4_891_427.934_010_591 + clippingAdd,
+        ymax: -2_306_963.309_761_594_5 + clippingAdd,
+      }}
       onViewCreated={setSceneView}
     >
       <Layers />
@@ -110,6 +111,7 @@ function Layers() {
   let imgLayer: ImageryLayer;
   let imgLayerRasterSizeX: number;
   let imgLayerRasterSizeY: number;
+  let imgLayerExtent: Extent;
   let volGraphicsLayer: GraphicsLayer;
 
   const onVolGraphicsViewCreated = (e: any) => {
@@ -132,15 +134,19 @@ function Layers() {
   const onImgViewCreated = (e: __esri.ImageryLayerLayerviewCreateEvent) => {
     imgLayer = e.layerView.layer as ImageryLayer;
     sceneView.goTo(imgLayer.fullExtent);
+    imgLayerExtent = imgLayer?.rasterInfo?.extent;
+    imgLayerRasterSizeX = imgLayer?.rasterInfo?.pixelSize?.x;
+    imgLayerRasterSizeY = imgLayer?.rasterInfo?.pixelSize?.y;
+
     console.log(
       'LayerView for imagery created!',
       imgLayer,
-      imgLayer?.rasterInfo?.pixelSize?.x,
-      imgLayer?.rasterInfo?.pixelSize?.y
+      imgLayerExtent,
+      imgLayerRasterSizeX,
+      imgLayerRasterSizeY
     );
-    
-    imgLayerRasterSizeX = imgLayer?.rasterInfo?.pixelSize?.x;
-    imgLayerRasterSizeY = imgLayer?.rasterInfo?.pixelSize?.y;
+
+    console.log(JSON.stringify(imgLayerExtent));
 
     imgLayer.renderer = {
       computeGamma: false,
@@ -255,7 +261,8 @@ function Layers() {
         const posY = Math.floor(index / pixelData.pixelBlock.height);
         if (!allPoints[posY]) allPoints[posY] = [];
 
-        const posX = index % pixelData.pixelBlock.width;
+        // const posX = index % pixelData.pixelBlock.width;
+        const posX = Math.floor(index % pixelData.pixelBlock.height);
         allPoints[posY][posX] = [
           pixelData.extent.xmin + posX,
           pixelData.extent.ymin + posY,
@@ -264,8 +271,8 @@ function Layers() {
       });
 
       // iterate through rows and columns and get triangles for mesh
-      for (let y = 0; y < allPoints.length - 2; y++) {
-        for (let x = 0; x < allPoints[0].length - 2; x++) {
+      for (let y = 0; y < allPoints.length - 3; y++) {
+        for (let x = 0; x < allPoints[0].length - 3; x++) {
           const t = getTriangle(allPoints, y, x);
           positionAll.push(...t);
         }
@@ -313,23 +320,26 @@ function Layers() {
         const mapPoint = event.mapPoint;
 
         // TODO: more that 158 return empty pixelBlock! :/
-        const pixelBlockWidth = 150;
-        const pixelBlockHeight = 150;
+        // const pixelBlockWidth = 150;
+        // const pixelBlockHeight = 150;
+        // const requestExtent = new Extent({
+        //   xmin: mapPoint.x,
+        //   ymin: mapPoint.y,
+        //   xmax: mapPoint.x + pixelBlockWidth,
+        //   ymax: mapPoint.y + pixelBlockHeight,
+        //   spatialReference: { wkid: 102_100 },
+        // });
+
         const requestExtent = new Extent({
-          xmin: mapPoint.x,
-          ymin: mapPoint.y,
-          xmax: mapPoint.x + pixelBlockWidth,
-          ymax: mapPoint.y + pixelBlockHeight,
+          xmin: imgLayerExtent.xmin,
+          ymin: imgLayerExtent.ymin,
+          xmax: imgLayerExtent.xmax,
+          ymax: imgLayerExtent.ymax,
           spatialReference: { wkid: 102_100 },
         });
 
-        // const requestExtent = new Extent({
-        //   xmin: sceneView.extent.xmin,
-        //   ymin: sceneView.extent.ymin,
-        //   xmax: sceneView.extent.xmax,
-        //   ymax: sceneView.extent.ymax,
-        //   spatialReference: { wkid: 102_100 },
-        // });
+        // imgLayerRasterSizeX
+        // imgLayerRasterSizeY
 
         const pixelData = (await (
           imgLayer as unknown as ImageryTileLayer
